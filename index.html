@@ -63,4 +63,478 @@
       white-space: nowrap; 
     }
     
-    .val-pill { display: inline-block; padding: 1px 6px; border-radius: 12px; font-weight: 600; font-
+    .val-pill { display: inline-block; padding: 1px 6px; border-radius: 12px; font-weight: 600; font-size: 0.65rem; }
+    .val-pill-target { background: #e0f2fe; color: #0369a1; } .val-pill-actual { background: #dbeafe; color: #1e40af; }
+    .val-pill-warn { background: #ffedd5; color: #c2410c; } .val-pill-danger { background: #fee2e2; color: #b91c1c; }
+    .val-pill-success { background: #dcfce7; color: #15803d; }
+
+    .text-orange { color: #ea580c !important; }
+  </style>
+</head>
+<body>
+
+  <header class="top-navbar-clean">
+    <div class="d-flex align-items-center gap-4">
+      <span class="fw-bold fs-4 text-primary"><i class="fa-solid fa-ship me-2"></i>Shipment Status</span>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <span id="dataStatusBadge" class="badge bg-warning-subtle text-warning border px-3 py-2"><i class="fa-solid fa-spinner fa-spin me-1"></i> Fetching Data...</span>
+    </div>
+  </header>
+
+  <main class="container-fluid px-4">
+    <!-- Filters (Cascading) -->
+    <div class="filter-card">
+      <div class="row g-2 align-items-end">
+        <div class="col-lg-2 col-md-4">
+          <label class="filter-label">Plant (ProdUnit)</label>
+          <select class="form-select form-select-sm" id="shipPlantSelect" onchange="updateFilters('shipPlantSelect')"></select>
+        </div>
+        <div class="col-lg-2 col-md-4">
+          <label class="filter-label">Customer</label>
+          <select class="form-select form-select-sm" id="shipCustomerSelect" onchange="updateFilters('shipCustomerSelect')"></select>
+        </div>
+        <div class="col-lg-3 col-md-4">
+          <label class="filter-label">Style No</label>
+          <select class="form-select form-select-sm" id="shipStyleSelect" onchange="updateFilters('shipStyleSelect')"></select>
+        </div>
+        <div class="col-lg-3 col-md-8">
+          <label class="filter-label">Ex-Fact Date Range</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white"><i class="fa-regular fa-calendar-days text-muted"></i></span>
+            <input type="text" class="form-control" id="shipDateSelect" placeholder="Select Dates...">
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-4 d-flex gap-2">
+          <button class="btn btn-outline-secondary btn-sm w-50" onclick="clearFilters()">Clear</button>
+          <button class="btn btn-primary btn-sm w-50" onclick="renderShipmentModule()"><i class="fa-solid fa-filter me-1"></i> Apply</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart (Black Smoky Glass) -->
+    <div class="chart-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0" id="chartTitle">Customer-wise Shipped vs Remaining Balance</h6>
+        
+        <!-- Toggle Switch for Chart Grouping -->
+        <div class="btn-group btn-group-sm" role="group">
+          <input type="radio" class="btn-check" name="chartToggle" id="toggleCustomer" autocomplete="off" checked onchange="toggleChartGroup('Customer')">
+          <label class="btn btn-outline-light" for="toggleCustomer">Customer-wise</label>
+
+          <input type="radio" class="btn-check" name="chartToggle" id="toggleStyle" autocomplete="off" onchange="toggleChartGroup('Style')">
+          <label class="btn btn-outline-light" for="toggleStyle">Style-wise</label>
+        </div>
+      </div>
+      
+      <div class="chart-box"><canvas id="shipmentChart"></canvas></div>
+    </div>
+
+    <!-- Data Table with Pagination -->
+    <div class="table-card">
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered mb-0" id="shipmentTable">
+          <thead>
+            <tr>
+              <th>SONo</th>
+              <th>Customer</th>
+              <th>SalesOffice</th>
+              <th>Style</th>
+              <th>StyleDesc</th>
+              <th>BuyerPO</th>
+              <th>ExFactDt</th>
+              <th>CSUnit</th>
+              <th>ProdUnit</th>
+              <th>ExFactUnit</th>
+              <th class="text-end">OrderQty</th>
+              <th class="text-end">ExFactQty</th>
+              <th class="text-end">PendingEx</th>
+              <th class="text-center">ExFactStatus</th>
+              <th class="text-end">CuttingIssued</th>
+              <th class="text-end">Stitched</th>
+              <th class="text-end">Finished</th>
+              <th class="text-end">Packed</th>
+              <th class="text-end">BalToCut</th>
+              <th class="text-end">BalToSew</th>
+              <th class="text-end">BalToFinish</th>
+              <th class="text-end">BalToPack</th>
+            </tr>
+          </thead>
+          <tbody id="shipTableBody"></tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination Controls -->
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <span id="pageInfo" class="text-muted small fw-bold">Showing 0 to 0 of 0 entries</span>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-secondary" id="btnPrevPage" onclick="changePage(-1)" disabled>Previous</button>
+          <button class="btn btn-outline-secondary" id="btnNextPage" onclick="changePage(1)" disabled>Next</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    Chart.register(ChartDataLabels);
+
+    let shipmentData = [];
+    let shipChart = null;
+    let flatpickrInstance = null;
+    let chartGroupMode = 'Customer'; 
+
+    // Pagination State
+    let currentFilteredRows = [];
+    let currentPage = 1;
+    const itemsPerPage = 50;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      flatpickrInstance = flatpickr("#shipDateSelect", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        onChange: function(selectedDates) {
+          if (selectedDates.length === 2 || selectedDates.length === 0) {
+            renderShipmentModule();
+          }
+        }
+      });
+
+      // Automatically load data on startup
+      loadLocalData();
+    });
+
+    async function loadLocalData() {
+      try {
+        const response = await fetch('shipmentstatusdata.xlsx');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const arrayBuffer = await response.arrayBuffer();
+        
+        const wb = XLSX.read(arrayBuffer, { type: 'array' });
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        
+        shipmentData = rows.map(r => ({
+          SONo: r.SONo || r['SO No.'] || '-',
+          Customer: r.Customer || r.Buyer || '-',
+          SalesOffice: r.SalesOffice || r.Merchant || '-',
+          Style: r.Style || r['Style No'] || '-',
+          StyleDesc: r.StyleDesc || r.Description || '-',
+          BuyerPO: r.BuyerPO || r['Buyer PO'] || r['PO Number'] || '-',
+          ExFactDt: formatExcelDate(r.ExFactDt || r['Ex-Fact Date'] || r.plannedDate),
+          CSUnit: r.CSUnit || '-',
+          ProdUnit: r.ProdUnit || r.Plant || '-',
+          ExFactUnit: r.ExFactUnit || '-',
+          OrderQty: parseFloat(r.OrderQty || r['Order Qty'] || r.qty) || 0,
+          ExFactQty: parseFloat(r.ExFactQty || r['Shipped Qty'] || r.shipped) || 0,
+          PendingExFactQty: parseFloat(r.PendingExFactQty || r['Pending Qty'] || r.balance) || 0,
+          ExFactStatus: r.ExFactStatus || r.Status || r.status || '-',
+          CuttingIssued: parseFloat(r.CuttingIssued || r['Cut Issued']) || 0,
+          Stitched: parseFloat(r.Stitched) || 0,
+          Finished: parseFloat(r.Finished) || 0,
+          Packed: parseFloat(r.Packed) || 0,
+          BalToCut: parseFloat(r.BalToCut) || 0,
+          BalToSew: parseFloat(r.BalToSew) || 0,
+          BalToFinish: parseFloat(r.BalToFinish) || 0,
+          BalToPack: parseFloat(r.BalToPack) || 0
+        }));
+
+        populateInitialFilters();
+        
+        document.getElementById('dataStatusBadge').className = 'badge bg-success-subtle text-success border px-3 py-2';
+        document.getElementById('dataStatusBadge').innerHTML = `<i class="fa-solid fa-circle-check me-1"></i> Data Loaded Successfully`;
+      } catch (error) {
+        console.error("Error loading local excel file:", error);
+        document.getElementById('dataStatusBadge').className = 'badge bg-danger-subtle text-danger border px-3 py-2';
+        document.getElementById('dataStatusBadge').innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Error Loading Data`;
+      }
+    }
+
+    function formatExcelDate(dateVal) {
+      if (!dateVal || dateVal === '-') return '-';
+      if (dateVal instanceof Date) return dateVal.toISOString().split('T')[0];
+      if (typeof dateVal === 'number') {
+        const excelEpoch = new Date(1899, 11, 30);
+        const date = new Date(excelEpoch.getTime() + Math.round(dateVal * 86400000));
+        return date.toISOString().split('T')[0];
+      }
+      return String(dateVal).split('T')[0]; 
+    }
+
+    function updateDropdown(id, optionsArr) {
+      const el = document.getElementById(id);
+      const currentVal = el.value;
+      el.innerHTML = optionsArr.map(s => `<option value="${s}">${s}</option>`).join('');
+      if (optionsArr.includes(currentVal)) {
+        el.value = currentVal;
+      } else {
+        el.value = 'ALL';
+      }
+    }
+
+    function populateInitialFilters() {
+      const plants = ['ALL', ...new Set(shipmentData.map(d => d.ProdUnit))];
+      updateDropdown('shipPlantSelect', plants);
+      updateFilters('shipPlantSelect');
+    }
+
+    // Cascading Filter Logic
+    function updateFilters(changedElementId) {
+      const plantFilter = document.getElementById('shipPlantSelect').value;
+      let rows = shipmentData;
+
+      if (plantFilter !== 'ALL') rows = rows.filter(r => r.ProdUnit === plantFilter);
+      
+      if (changedElementId === 'shipPlantSelect') {
+        const customers = ['ALL', ...new Set(rows.map(r => r.Customer))];
+        updateDropdown('shipCustomerSelect', customers);
+        updateFilters('shipCustomerSelect');
+        return;
+      }
+
+      const custFilter = document.getElementById('shipCustomerSelect').value;
+
+      if (custFilter !== 'ALL') rows = rows.filter(r => r.Customer === custFilter);
+
+      if (changedElementId === 'shipCustomerSelect') {
+        const styles = ['ALL', ...new Set(rows.map(r => r.Style))];
+        updateDropdown('shipStyleSelect', styles);
+        updateFilters('shipStyleSelect');
+        return;
+      }
+
+      // If we reach here, trigger render
+      if (changedElementId === 'shipStyleSelect') {
+        renderShipmentModule();
+        return;
+      }
+    }
+
+    function clearFilters() {
+      document.getElementById('shipPlantSelect').value = 'ALL';
+      document.getElementById('shipCustomerSelect').value = 'ALL';
+      document.getElementById('shipStyleSelect').value = 'ALL';
+      if(flatpickrInstance) flatpickrInstance.clear();
+      
+      // Re-populate everything based on clean slate
+      populateInitialFilters();
+    }
+
+    function toggleChartGroup(mode) {
+      chartGroupMode = mode;
+      document.getElementById('chartTitle').innerText = `${mode}-wise Shipped vs Remaining Balance`;
+      
+      // Clear filters entirely so the switch doesn't get stuck on old specific selections
+      clearFilters();
+    }
+
+    // Render Table Page
+    function drawTablePage() {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const rowsToRender = currentFilteredRows.slice(startIndex, endIndex);
+
+      const tbody = document.getElementById('shipTableBody');
+      tbody.innerHTML = '';
+
+      rowsToRender.forEach(r => {
+        const statusUpper = r.ExFactStatus.toUpperCase();
+        let badgeClass = 'val-pill-actual';
+        if (statusUpper.includes('SHIPPED') || statusUpper.includes('ON TRACK')) badgeClass = 'val-pill-success';
+        else if (statusUpper.includes('DELAYED') || statusUpper.includes('TOUGH')) badgeClass = 'val-pill-danger';
+        
+        tbody.innerHTML += `<tr>
+            <td>${r.SONo}</td>
+            <td><strong>${r.Customer}</strong></td>
+            <td>${r.SalesOffice}</td>
+            <td><code>${r.Style}</code></td>
+            <td class="text-truncate" style="max-width: 120px;" title="${r.StyleDesc}">${r.StyleDesc}</td>
+            <td>${r.BuyerPO}</td>
+            <td>${r.ExFactDt}</td>
+            <td>${r.CSUnit}</td>
+            <td>${r.ProdUnit}</td>
+            <td>${r.ExFactUnit}</td>
+            <td class="text-end fw-bold">${r.OrderQty.toLocaleString()}</td>
+            <td class="text-end fw-bold text-primary">${r.ExFactQty.toLocaleString()}</td>
+            <td class="text-end fw-bold text-orange">${r.PendingExFactQty.toLocaleString()}</td>
+            <td class="text-center"><span class="val-pill ${badgeClass}">${r.ExFactStatus}</span></td>
+            <td class="text-end">${r.CuttingIssued.toLocaleString()}</td>
+            <td class="text-end">${r.Stitched.toLocaleString()}</td>
+            <td class="text-end">${r.Finished.toLocaleString()}</td>
+            <td class="text-end">${r.Packed.toLocaleString()}</td>
+            <td class="text-end text-muted">${r.BalToCut.toLocaleString()}</td>
+            <td class="text-end text-muted">${r.BalToSew.toLocaleString()}</td>
+            <td class="text-end text-muted">${r.BalToFinish.toLocaleString()}</td>
+            <td class="text-end text-muted">${r.BalToPack.toLocaleString()}</td>
+          </tr>`;
+      });
+
+      // Update Pagination UI
+      const totalItems = currentFilteredRows.length;
+      const displayEnd = Math.min(endIndex, totalItems);
+      const displayStart = totalItems === 0 ? 0 : startIndex + 1;
+      
+      document.getElementById('pageInfo').innerText = `Showing ${displayStart} to ${displayEnd} of ${totalItems} entries`;
+      document.getElementById('btnPrevPage').disabled = currentPage === 1;
+      document.getElementById('btnNextPage').disabled = endIndex >= totalItems;
+    }
+
+    function changePage(delta) {
+      currentPage += delta;
+      drawTablePage();
+    }
+
+    function renderShipmentModule() {
+      const fPlant = document.getElementById('shipPlantSelect').value;
+      const fCust = document.getElementById('shipCustomerSelect').value;
+      const fStyle = document.getElementById('shipStyleSelect').value;
+      const fDateRange = document.getElementById('shipDateSelect').value; 
+
+      let rows = shipmentData;
+      
+      // Apply Table & Chart Filters
+      if (fPlant !== 'ALL') rows = rows.filter(r => r.ProdUnit === fPlant);
+      if (fCust !== 'ALL') rows = rows.filter(r => r.Customer === fCust);
+      if (fStyle !== 'ALL') rows = rows.filter(r => r.Style === fStyle);
+
+      if (fDateRange) {
+        if (fDateRange.includes(' to ')) {
+          const [startStr, endStr] = fDateRange.split(' to ');
+          const startDate = new Date(startStr);
+          const endDate = new Date(endStr);
+          
+          rows = rows.filter(r => {
+            if (!r.ExFactDt || r.ExFactDt === '-') return false;
+            const rDate = new Date(r.ExFactDt);
+            return rDate >= startDate && rDate <= endDate;
+          });
+        } else {
+          rows = rows.filter(r => r.ExFactDt === fDateRange);
+        }
+      }
+
+      currentFilteredRows = rows;
+      currentPage = 1;
+      drawTablePage();
+
+      // Dynamic Chart Grouping
+      const groupKey = chartGroupMode === 'Customer' ? 'Customer' : 'Style';
+      const groups = [...new Set(rows.map(r => r[groupKey]))];
+      const groupShipped = {}, groupBalance = {};
+      groups.forEach(g => { groupShipped[g] = 0; groupBalance[g] = 0; });
+
+      rows.forEach(r => {
+        if(groupShipped[r[groupKey]] !== undefined) {
+            groupShipped[r[groupKey]] += r.ExFactQty; 
+            groupBalance[r[groupKey]] += r.PendingExFactQty;
+        }
+      });
+
+      const chartLabels = groups.map(g => {
+        const total = groupShipped[g] + groupBalance[g];
+        return [total.toLocaleString(), g];
+      });
+
+      // Render Chart
+      const ctx = document.getElementById('shipmentChart').getContext('2d');
+      if (shipChart) shipChart.destroy();
+      shipChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: chartLabels,
+          datasets: [
+            { 
+              label: 'ExFact Qty (Shipped)', 
+              data: groups.map(g => groupShipped[g]), 
+              backgroundColor: '#3b82f6' 
+            },
+            { 
+              label: 'Pending ExFact Qty (Balance)', 
+              data: groups.map(g => groupBalance[g]), 
+              backgroundColor: '#f97316' 
+            }
+          ]
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false, 
+          layout: {
+            padding: { top: 10 } 
+          },
+          scales: { 
+            x: { 
+              stacked: true, 
+              grid: { display: false },
+              ticks: {
+                color: '#f8fafc',
+                font: { weight: 'bold' }
+              }
+            }, 
+            y: { 
+              stacked: true, 
+              beginAtZero: true,
+              grid: { color: 'rgba(255, 255, 255, 0.1)' },
+              ticks: { color: '#cbd5e1' }
+            } 
+          },
+          plugins: {
+            legend: { 
+              position: 'top',
+              align: 'end',
+              labels: { color: '#ffffff' }
+            },
+            datalabels: {
+              color: '#ffffff',
+              font: { weight: 'bold', size: 11 },
+              clip: true,
+              formatter: function(value) {
+                return value.toLocaleString();
+              },
+              display: function(context) {
+                var value = context.dataset.data[context.dataIndex];
+                
+                // Get the absolute highest value of the Y axis to determine the global scale
+                var maxY = context.chart.scales.y.max;
+                
+                // Show label only if its segment represents at least ~4% of the ENTIRE chart height
+                // This guarantees the segment is physically tall enough in pixels to fit the text 
+                // regardless of how short the specific column is compared to the rest of the chart.
+                if (value > 0 && maxY > 0) {
+                  return (value / maxY) >= 0.04;
+                }
+                return false;
+              },
+              anchor: 'center',
+              align: 'center'
+            },
+            tooltip: {
+               mode: 'index',
+               intersect: false, 
+               backgroundColor: 'rgba(15, 23, 42, 0.95)',
+               titleColor: '#ffffff',
+               bodyColor: '#e2e8f0',
+               borderColor: 'rgba(255, 255, 255, 0.2)',
+               borderWidth: 1,
+               padding: 12,
+               displayColors: true,
+               callbacks: {
+                  label: function(context) {
+                     return context.dataset.label + ': ' + context.parsed.y.toLocaleString();
+                  },
+                  footer: function(tooltipItems) {
+                     let total = 0;
+                     tooltipItems.forEach(function(tooltipItem) {
+                        total += tooltipItem.parsed.y;
+                     });
+                     return 'Total Quantity: ' + total.toLocaleString();
+                  }
+               },
+               footerFont: { weight: 'bold', size: 13 },
+               footerMarginTop: 10,
+               footerColor: '#ffffff'
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

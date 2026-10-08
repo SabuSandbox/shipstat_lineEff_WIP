@@ -174,15 +174,19 @@
             <select class="form-select form-select-sm" id="effPlantSelect" onchange="eff_updateFilters('effPlantSelect')"></select>
           </div>
           <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Phy Plant</label>
+            <select class="form-select form-select-sm" id="effPhyPlantSelect" onchange="eff_updateFilters('effPhyPlantSelect')"></select>
+          </div>
+          <div class="col-lg-2 col-md-4">
             <label class="filter-label">Line</label>
             <select class="form-select form-select-sm" id="effLineSelect" onchange="eff_updateFilters('effLineSelect')"></select>
           </div>
-          <div class="col-lg-3 col-md-4">
-            <label class="filter-label">Style No</label>
+          <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Style</label>
             <select class="form-select form-select-sm" id="effStyleSelect" onchange="eff_updateFilters('effStyleSelect')"></select>
           </div>
-          <div class="col-lg-3 col-md-8">
-            <label class="filter-label">Production Date Range</label>
+          <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Date Range</label>
             <div class="input-group input-group-sm">
               <span class="input-group-text bg-white"><i class="fa-regular fa-calendar-days text-muted"></i></span>
               <input type="text" class="form-control date-input" id="effDateSelect" placeholder="Select Dates...">
@@ -211,9 +215,12 @@
           <table class="table table-hover table-bordered mb-0">
             <thead>
               <tr>
-                <th>Plant</th><th>Line</th><th>Style No</th><th>Style Desc</th><th>Prd Date</th><th class="text-end">Order Qty</th><th class="text-end">SMV</th>
-                <th class="text-end">Daily Prod</th><th class="text-end">MTD Plan Qty</th><th class="text-end">MTD Actual Qty</th>
-                <th class="text-end">MTD Plan Eff %</th><th class="text-end">MTD Actual Eff %</th>
+                <th>Plant</th><th>Phy Plant</th><th>Line</th><th>Style</th><th>Prd Date</th>
+                <th class="text-end">Order Qty</th><th class="text-end">SMV</th>
+                <th class="text-end">Daily Plan</th><th class="text-end">Daily Prod</th>
+                <th class="text-end">Daily Plan Eff%</th><th class="text-end">Daily Act Eff%</th>
+                <th class="text-end bg-light">MTD Plan</th><th class="text-end bg-light">MTD Actual</th>
+                <th class="text-end bg-light">MTD Plan Eff%</th><th class="text-end bg-light">MTD Act Eff%</th>
               </tr>
             </thead>
             <tbody id="effTableBody"></tbody>
@@ -371,14 +378,35 @@
           BalToFinish: parseFloat(r.BalToFinish) || 0, BalToPack: parseFloat(r.BalToPack) || 0
         }));
 
-        // Parse Efficiency
-        effData = effRaw.map(r => ({
-          Plant: r.physicalplant || r.plantcode || '-', Line: r.line || '-', StyleNo: r.styleno || '-', StyleDesc: r.styledesc || '-',
-          PrdDate: parseDate(r.prd_date), OrderQty: parseFloat(r.orderqty) || 0, SMV: parseFloat(r.smv) || 0,
-          DailyProdQty: parseFloat(r.dailyprodqty) || 0, MTDPlanQty: parseFloat(r.mtdplanqty) || 0,
-          MTDProdQty: parseFloat(r.mtdprodqty) || 0, MTDPlanEff: parseFloat(r.mtdplaneffpct) || 0,
-          MTDActualEff: parseFloat(r.mtdactualeffpct) || 0
-        }));
+        // Parse Efficiency mapping from new table structure rules
+        effData = effRaw.map(r => {
+          let pltCode = r.plant || r.plantcode || '-';
+          let pDesc = r.plant_desc;
+          let phyCode = r.physical_plant || r.physicalplant || '-';
+          let ppDesc = r.phyplant_desc;
+          let lineNo = r.line_no || r.line || '-';
+          let lDesc = r.line_desc;
+          let styleNo = r.style_no || r.styleno || '-';
+          let styleDesc = r.style_desc || r.styledesc || '';
+
+          return {
+            PlantLabel: (pDesc && pDesc !== '-') ? `${pltCode} - ${pDesc}` : pltCode,
+            PhyPlantLabel: (ppDesc && ppDesc !== '-') ? `${phyCode} - ${ppDesc}` : phyCode,
+            LineLabel: (lDesc && lDesc !== '-') ? `${lineNo} - ${lDesc}` : lineNo,
+            StyleLabel: (styleDesc && styleDesc !== '-') ? `${styleNo} (${styleDesc})` : styleNo,
+            PrdDate: parseDate(r.prd_date),
+            OrderQty: parseFloat(r.order_qty || r.orderqty) || 0,
+            SMV: parseFloat(r.smv) || 0,
+            DailyPlanQty: parseFloat(r.dailyplanqty) || 0,
+            DailyProdQty: parseFloat(r.dailyprodqty) || 0,
+            DailyPlanEff: parseFloat(r.dailyplaneffpct) || 0,
+            DailyActualEff: parseFloat(r.dailyactualeffpct) || 0,
+            MTDPlanQty: parseFloat(r.mtdplanqty) || 0,
+            MTDProdQty: parseFloat(r.mtdprodqty) || 0,
+            MTDPlanEff: parseFloat(r.mtdplaneffpct) || 0,
+            MTDActualEff: parseFloat(r.mtdactualeffpct) || 0
+          };
+        });
 
         // Parse WIP
         wipData = wipRaw.map(r => ({
@@ -554,29 +582,40 @@
     function ship_changePage(delta) { ship_page += delta; ship_drawTable(); }
 
     // ==========================================
-    // MODULE 2: EFFICIENCY
+    // MODULE 2: EFFICIENCY (UPDATED)
     // ==========================================
     function eff_updateFilters(changed) {
       let r = effData;
-      let p = document.getElementById('effPlantSelect').value;
-      if (p !== 'ALL') r = r.filter(x => x.Plant === p);
+      let plt = document.getElementById('effPlantSelect').value;
+      if (plt !== 'ALL') r = r.filter(x => x.PlantLabel === plt);
       
       if (changed === 'effPlantSelect') {
-        updateSelect('effLineSelect', ['ALL', ...new Set(r.map(x => x.Line))]);
+        updateSelect('effPhyPlantSelect', ['ALL', ...new Set(r.map(x => x.PhyPlantLabel))]);
+        return eff_updateFilters('effPhyPlantSelect');
+      }
+
+      let phy = document.getElementById('effPhyPlantSelect').value;
+      if (phy !== 'ALL') r = r.filter(x => x.PhyPlantLabel === phy);
+      
+      if (changed === 'effPhyPlantSelect') {
+        updateSelect('effLineSelect', ['ALL', ...new Set(r.map(x => x.LineLabel))]);
         return eff_updateFilters('effLineSelect');
       }
-      let l = document.getElementById('effLineSelect').value;
-      if (l !== 'ALL') r = r.filter(x => x.Line === l);
-      
+
+      let lin = document.getElementById('effLineSelect').value;
+      if (lin !== 'ALL') r = r.filter(x => x.LineLabel === lin);
+
       if (changed === 'effLineSelect') {
-        updateSelect('effStyleSelect', ['ALL', ...new Set(r.map(x => x.StyleNo))]);
+        updateSelect('effStyleSelect', ['ALL', ...new Set(r.map(x => x.StyleLabel))]);
         return eff_updateFilters('effStyleSelect');
       }
+
       if (changed === 'effStyleSelect') eff_render();
     }
     
     function eff_clearFilters() {
-      updateSelect('effPlantSelect', ['ALL', ...new Set(effData.map(x => x.Plant))]);
+      updateSelect('effPlantSelect', ['ALL', ...new Set(effData.map(x => x.PlantLabel))]);
+      document.getElementById('effPhyPlantSelect').innerHTML = '<option value="ALL">ALL</option>';
       document.getElementById('effLineSelect').innerHTML = '<option value="ALL">ALL</option>';
       document.getElementById('effStyleSelect').innerHTML = '<option value="ALL">ALL</option>';
       effDatePicker.clear();
@@ -587,14 +626,16 @@
 
     function eff_render() {
       let r = effData;
-      let p = document.getElementById('effPlantSelect').value;
-      let l = document.getElementById('effLineSelect').value;
-      let s = document.getElementById('effStyleSelect').value;
+      let plt = document.getElementById('effPlantSelect').value;
+      let phy = document.getElementById('effPhyPlantSelect').value;
+      let lin = document.getElementById('effLineSelect').value;
+      let sty = document.getElementById('effStyleSelect').value;
       let d = document.getElementById('effDateSelect').value;
 
-      if(p!=='ALL') r = r.filter(x=>x.Plant===p);
-      if(l!=='ALL') r = r.filter(x=>x.Line===l);
-      if(s!=='ALL') r = r.filter(x=>x.StyleNo===s);
+      if(plt!=='ALL') r = r.filter(x=>x.PlantLabel===plt);
+      if(phy!=='ALL') r = r.filter(x=>x.PhyPlantLabel===phy);
+      if(lin!=='ALL') r = r.filter(x=>x.LineLabel===lin);
+      if(sty!=='ALL') r = r.filter(x=>x.StyleLabel===sty);
       if(d) {
         if(d.includes(' to ')) {
           let [sd, ed] = d.split(' to ');
@@ -605,10 +646,10 @@
       }
       eff_filtered = r; eff_page = 1; eff_drawTable();
 
-      const grps = [...new Set(r.map(x => x.Line))];
+      const grps = [...new Set(r.map(x => x.LineLabel))];
       const pEff = {}, aEff = {}, cnt = {}, pQty = {}, aQty = {};
       grps.forEach(g => { pEff[g]=0; aEff[g]=0; cnt[g]=0; pQty[g]=0; aQty[g]=0; });
-      r.forEach(x => { pEff[x.Line]+=x.MTDPlanEff; aEff[x.Line]+=x.MTDActualEff; pQty[x.Line]+=x.MTDPlanQty; aQty[x.Line]+=x.MTDProdQty; cnt[x.Line]++; });
+      r.forEach(x => { pEff[x.LineLabel]+=x.MTDPlanEff; aEff[x.LineLabel]+=x.MTDActualEff; pQty[x.LineLabel]+=x.MTDPlanQty; aQty[x.LineLabel]+=x.MTDProdQty; cnt[x.LineLabel]++; });
 
       let ds1, ds2, lb1, lb2, cl1 = '#3b82f6', cl2 = '#10b981';
       if(eff_metricMode === 'Efficiency') {
@@ -647,13 +688,14 @@
       const start = (eff_page - 1) * itemsPerPage;
       const d = eff_filtered.slice(start, start + itemsPerPage);
       document.getElementById('effTableBody').innerHTML = d.map(r => `<tr>
-          <td><strong>${r.Plant}</strong></td><td><code>${r.Line}</code></td><td>${r.StyleNo}</td>
-          <td class="text-truncate" style="max-width: 150px;" title="${r.StyleDesc}">${r.StyleDesc}</td>
+          <td><strong>${r.PlantLabel}</strong></td><td><strong>${r.PhyPlantLabel}</strong></td><td><code>${r.LineLabel}</code></td>
+          <td class="text-truncate" style="max-width: 150px;" title="${r.StyleLabel}">${r.StyleLabel}</td>
           <td>${r.PrdDate}</td>
           <td class="text-end">${r.OrderQty.toLocaleString()}</td><td class="text-end">${r.SMV.toFixed(2)}</td>
-          <td class="text-end fw-bold text-primary">${r.DailyProdQty.toLocaleString()}</td><td class="text-end">${r.MTDPlanQty.toLocaleString()}</td>
-          <td class="text-end fw-bold text-success">${r.MTDProdQty.toLocaleString()}</td><td class="text-end">${r.MTDPlanEff.toFixed(2)}%</td>
-          <td class="text-end fw-bold text-info">${r.MTDActualEff.toFixed(2)}%</td>
+          <td class="text-end">${r.DailyPlanQty.toLocaleString()}</td><td class="text-end fw-bold text-primary">${r.DailyProdQty.toLocaleString()}</td>
+          <td class="text-end">${r.DailyPlanEff.toFixed(2)}%</td><td class="text-end">${r.DailyActualEff.toFixed(2)}%</td>
+          <td class="text-end bg-light">${r.MTDPlanQty.toLocaleString()}</td><td class="text-end bg-light fw-bold text-success">${r.MTDProdQty.toLocaleString()}</td>
+          <td class="text-end bg-light">${r.MTDPlanEff.toFixed(2)}%</td><td class="text-end bg-light fw-bold text-info">${r.MTDActualEff.toFixed(2)}%</td>
         </tr>`).join('');
       document.getElementById('effPageInfo').innerText = `Showing ${d.length ? start+1 : 0} to ${start+d.length} of ${eff_filtered.length} entries`;
       document.getElementById('effBtnPrev').disabled = eff_page === 1;

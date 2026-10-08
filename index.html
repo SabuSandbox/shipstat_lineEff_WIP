@@ -40,19 +40,19 @@
     /* Smoky Glass Chart Container */
     .chart-card { 
       background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.95) 100%);
-      backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; 
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); margin-bottom: 20px; padding: 20px; color: #ffffff; 
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); 
+      border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); margin-bottom: 20px; padding: 20px; color: #ffffff; 
     }
     .chart-card h6 { color: #ffffff !important; }
-    .chart-box { position: relative; height: 420px; width: 100%; }
+    .chart-box { position: relative; height: 380px; width: 100%; }
     .date-input { background-color: #fff !important; cursor: pointer; }
 
-    /* Table Styling */
+    /* Ultra-Compact Table Styling */
     .table-responsive { overflow-x: auto; margin-bottom: 0; min-height: 250px; }
-    .table thead th { background: #f8fafc; color: #334155; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; padding: 4px 6px; border-bottom: 2px solid #cbd5e1; }
-    .table tbody td { vertical-align: middle; font-size: 0.7rem; padding: 4px 6px; white-space: nowrap; }
+    .table thead th { background: #f8fafc; color: #334155; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; padding: 6px 8px; border-bottom: 2px solid #cbd5e1; }
+    .table tbody td { vertical-align: middle; font-size: 0.7rem; padding: 5px 8px; white-space: nowrap; }
     
-    .val-pill { display: inline-block; padding: 1px 6px; border-radius: 12px; font-weight: 600; font-size: 0.65rem; }
+    .val-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 0.65rem; }
     .val-pill-actual { background: #dbeafe; color: #1e40af; }
     .val-pill-danger { background: #fee2e2; color: #b91c1c; }
     .val-pill-success { background: #dcfce7; color: #15803d; }
@@ -67,8 +67,8 @@
       <i class="fa-solid fa-globe fs-4 text-primary"></i>
       <span class="fw-bold fs-5">Pearl Global Central</span>
     </div>
-    <div class="d-flex align-items-center gap-3">
-      <span id="dataStatusBadge" class="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill shadow-sm">
+    <div class="d-flex align-items-center">
+      <span id="dataStatusBadge" class="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill">
         <i class="fa-solid fa-spinner fa-spin me-1"></i> Fetching Data...
       </span>
     </div>
@@ -85,4 +85,664 @@
         <a class="nav-link" id="tab-efficiency" onclick="switchTab('efficiency')"><i class="fa-solid fa-chart-line me-1"></i> Line Efficiency</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" id="tab-wip"
+        <a class="nav-link" id="tab-wip" onclick="switchTab('wip')"><i class="fa-solid fa-clipboard-list me-1"></i> Daily WIP Summary</a>
+      </li>
+    </ul>
+  </div>
+
+  <main class="container-fluid px-4 pt-3">
+    
+    <!-- ==========================================
+         TAB 1: SHIPMENT STATUS
+    =========================================== -->
+    <div id="pane-shipment" class="tab-pane d-block">
+      <!-- Filters -->
+      <div class="filter-card">
+        <div class="row g-2 align-items-end">
+          <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Plant</label>
+            <select class="form-select form-select-sm" id="shipPlantSelect" onchange="ship_updateFilters('shipPlantSelect')"></select>
+          </div>
+          <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Customer</label>
+            <select class="form-select form-select-sm" id="shipCustomerSelect" onchange="ship_updateFilters('shipCustomerSelect')"></select>
+          </div>
+          <div class="col-lg-3 col-md-4">
+            <label class="filter-label">Style No</label>
+            <select class="form-select form-select-sm" id="shipStyleSelect" onchange="ship_updateFilters('shipStyleSelect')"></select>
+          </div>
+          <div class="col-lg-3 col-md-8">
+            <label class="filter-label">Ex-Fact Date Range</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white"><i class="fa-regular fa-calendar-days text-muted"></i></span>
+              <input type="text" class="form-control date-input" id="shipDateSelect" placeholder="Select Dates...">
+            </div>
+          </div>
+          <div class="col-lg-2 col-md-4 d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm w-50" onclick="ship_clearFilters()">Clear</button>
+            <button class="btn btn-primary btn-sm w-50" onclick="ship_render()"><i class="fa-solid fa-filter me-1"></i> Apply</button>
+          </div>
+        </div>
+      </div>
+      <!-- Chart -->
+      <div class="chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold mb-0" id="shipChartTitle">Customer-wise Shipped vs Remaining Balance</h6>
+          <div class="btn-group btn-group-sm">
+            <input type="radio" class="btn-check" name="shipToggle" id="shipToggleCust" checked onchange="ship_toggleGroup('Customer')">
+            <label class="btn btn-outline-light" for="shipToggleCust">Customer-wise</label>
+            <input type="radio" class="btn-check" name="shipToggle" id="shipToggleStyle" onchange="ship_toggleGroup('Style')">
+            <label class="btn btn-outline-light" for="shipToggleStyle">Style-wise</label>
+          </div>
+        </div>
+        <div class="chart-box"><canvas id="shipChartCanvas"></canvas></div>
+      </div>
+      <!-- Table -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered mb-0">
+            <thead>
+              <tr>
+                <th>SONo</th><th>Customer</th><th>SalesOffice</th><th>Style</th><th>StyleDesc</th><th>BuyerPO</th><th>ExFactDt</th>
+                <th>CSUnit</th><th>ProdUnit</th><th>ExFactUnit</th>
+                <th class="text-end">OrderQty</th><th class="text-end">ExFactQty</th><th class="text-end">PendingEx</th><th class="text-center">ExFactStatus</th>
+                <th class="text-end">CuttingIssued</th><th class="text-end">Stitched</th><th class="text-end">Finished</th><th class="text-end">Packed</th>
+                <th class="text-end">BalToCut</th><th class="text-end">BalToSew</th><th class="text-end">BalToFinish</th><th class="text-end">BalToPack</th>
+              </tr>
+            </thead>
+            <tbody id="shipTableBody"></tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <span id="shipPageInfo" class="text-muted small fw-bold">Showing 0 to 0 of 0 entries</span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" id="shipBtnPrev" onclick="ship_changePage(-1)" disabled>Previous</button>
+            <button class="btn btn-outline-secondary" id="shipBtnNext" onclick="ship_changePage(1)" disabled>Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 2: LINE EFFICIENCY
+    =========================================== -->
+    <div id="pane-efficiency" class="tab-pane d-none">
+      <div class="filter-card">
+        <div class="row g-2 align-items-end">
+          <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Plant</label>
+            <select class="form-select form-select-sm" id="effPlantSelect" onchange="eff_updateFilters('effPlantSelect')"></select>
+          </div>
+          <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Line</label>
+            <select class="form-select form-select-sm" id="effLineSelect" onchange="eff_updateFilters('effLineSelect')"></select>
+          </div>
+          <div class="col-lg-3 col-md-4">
+            <label class="filter-label">Style No</label>
+            <select class="form-select form-select-sm" id="effStyleSelect" onchange="eff_updateFilters('effStyleSelect')"></select>
+          </div>
+          <div class="col-lg-3 col-md-8">
+            <label class="filter-label">Production Date Range</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white"><i class="fa-regular fa-calendar-days text-muted"></i></span>
+              <input type="text" class="form-control date-input" id="effDateSelect" placeholder="Select Dates...">
+            </div>
+          </div>
+          <div class="col-lg-2 col-md-4 d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm w-50" onclick="eff_clearFilters()">Clear</button>
+            <button class="btn btn-primary btn-sm w-50" onclick="eff_render()"><i class="fa-solid fa-filter me-1"></i> Apply</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold mb-0" id="effChartTitle">Line-wise Performance (Efficiency %)</h6>
+          <div class="btn-group btn-group-sm">
+            <input type="radio" class="btn-check" name="effToggle" id="effToggleEff" checked onchange="eff_toggleMetric('Efficiency')">
+            <label class="btn btn-outline-light" for="effToggleEff">Efficiency %</label>
+            <input type="radio" class="btn-check" name="effToggle" id="effToggleQty" onchange="eff_toggleMetric('Qty')">
+            <label class="btn btn-outline-light" for="effToggleQty">Production Qty</label>
+          </div>
+        </div>
+        <div class="chart-box"><canvas id="effChartCanvas"></canvas></div>
+      </div>
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered mb-0">
+            <thead>
+              <tr>
+                <th>Plant</th><th>Line</th><th>Style No</th><th>Style Desc</th><th>Prd Date</th><th class="text-end">Order Qty</th><th class="text-end">SMV</th>
+                <th class="text-end">Daily Prod</th><th class="text-end">MTD Plan Qty</th><th class="text-end">MTD Actual Qty</th>
+                <th class="text-end">MTD Plan Eff %</th><th class="text-end">MTD Actual Eff %</th>
+              </tr>
+            </thead>
+            <tbody id="effTableBody"></tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <span id="effPageInfo" class="text-muted small fw-bold">Showing 0 to 0 of 0 entries</span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" id="effBtnPrev" onclick="eff_changePage(-1)" disabled>Previous</button>
+            <button class="btn btn-outline-secondary" id="effBtnNext" onclick="eff_changePage(1)" disabled>Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 3: DAILY WIP SUMMARY
+    =========================================== -->
+    <div id="pane-wip" class="tab-pane d-none">
+      <div class="filter-card">
+        <div class="row g-2 align-items-end">
+          <div class="col-lg-3 col-md-4">
+            <label class="filter-label">Unit</label>
+            <select class="form-select form-select-sm" id="wipUnitSelect" onchange="wip_updateFilters('wipUnitSelect')"></select>
+          </div>
+          <div class="col-lg-3 col-md-4">
+            <label class="filter-label">Department</label>
+            <select class="form-select form-select-sm" id="wipDeptSelect" onchange="wip_updateFilters('wipDeptSelect')"></select>
+          </div>
+          <div class="col-lg-6 col-md-4 d-flex justify-content-end gap-2">
+            <button class="btn btn-outline-secondary btn-sm px-4" onclick="wip_clearFilters()">Clear</button>
+            <button class="btn btn-primary btn-sm px-4" onclick="wip_render()"><i class="fa-solid fa-filter me-1"></i> Apply</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold mb-0" id="wipChartTitle">Department-wise MTD Planned vs Actual</h6>
+          <div class="btn-group btn-group-sm">
+            <input type="radio" class="btn-check" name="wipToggle" id="wipToggleDept" checked onchange="wip_toggleGroup('Department')">
+            <label class="btn btn-outline-light" for="wipToggleDept">Department-wise</label>
+            <input type="radio" class="btn-check" name="wipToggle" id="wipToggleUnit" onchange="wip_toggleGroup('Unit')">
+            <label class="btn btn-outline-light" for="wipToggleUnit">Unit-wise</label>
+          </div>
+        </div>
+        <div class="chart-box"><canvas id="wipChartCanvas"></canvas></div>
+      </div>
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered mb-0">
+            <thead>
+              <tr>
+                <th>Unit</th><th>Department</th>
+                <th class="text-end">Plan Daily</th><th class="text-end">Actual Daily</th><th class="text-end">Alt Rej Daily</th>
+                <th class="text-end bg-light">Plan MTD</th><th class="text-end bg-light">Actual MTD</th><th class="text-end bg-light">Alt Rej MTD</th>
+                <th class="text-end">Final Rej</th><th class="text-end">Mth Opn Bal</th><th class="text-end text-primary">MTD Bal</th><th class="text-end fw-bold">Mth Cls Bal</th>
+              </tr>
+            </thead>
+            <tbody id="wipTableBody"></tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <span id="wipPageInfo" class="text-muted small fw-bold">Showing 0 to 0 of 0 entries</span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" id="wipBtnPrev" onclick="wip_changePage(-1)" disabled>Previous</button>
+            <button class="btn btn-outline-secondary" id="wipBtnNext" onclick="wip_changePage(1)" disabled>Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    Chart.register(ChartDataLabels);
+
+    // Common Configuration
+    const itemsPerPage = 50;
+    let activeTab = 'shipment';
+
+    // Global Data Stores
+    let shipData = [], ship_filtered = [], ship_page = 1, ship_chartInst = null, ship_groupMode = 'Customer';
+    let effData = [], eff_filtered = [], eff_page = 1, eff_chartInst = null, eff_metricMode = 'Efficiency';
+    let wipData = [], wip_filtered = [], wip_page = 1, wip_chartInst = null, wip_groupMode = 'Department';
+
+    let shipDatePicker, effDatePicker;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Init Date Pickers
+      shipDatePicker = flatpickr("#shipDateSelect", { mode: "range", dateFormat: "Y-m-d", onChange: d => { if(d.length===2 || d.length===0) ship_render(); } });
+      effDatePicker = flatpickr("#effDateSelect", { mode: "range", dateFormat: "Y-m-d", onChange: d => { if(d.length===2 || d.length===0) eff_render(); } });
+      
+      // Load Data Concurrently
+      loadAllDatasets();
+    });
+
+    // --- TAB SWITCHING LOGIC ---
+    function switchTab(tabId) {
+      activeTab = tabId;
+      ['shipment', 'efficiency', 'wip'].forEach(id => {
+        document.getElementById(`tab-${id}`).classList.remove('active');
+        document.getElementById(`pane-${id}`).classList.remove('d-block');
+        document.getElementById(`pane-${id}`).classList.add('d-none');
+      });
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+      document.getElementById(`pane-${tabId}`).classList.remove('d-none');
+      document.getElementById(`pane-${tabId}`).classList.add('d-block');
+      
+      // Re-render chart on active to avoid canvas scaling bugs when unhiding divs
+      if(tabId === 'shipment') ship_render();
+      if(tabId === 'efficiency') eff_render();
+      if(tabId === 'wip') wip_render();
+    }
+
+    // --- DATA LOADING ---
+    async function fetchSheetData(filename) {
+      const res = await fetch(filename);
+      if (!res.ok) throw new Error(`File ${filename} not found`);
+      const buf = await res.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    }
+
+    function parseDate(val) {
+      if (!val || val === '-') return '-';
+      if (val instanceof Date) return val.toISOString().split('T')[0];
+      if (typeof val === 'number') {
+        const d = new Date(new Date(1899, 11, 30).getTime() + Math.round(val * 86400000));
+        return d.toISOString().split('T')[0];
+      }
+      return String(val).split('T')[0];
+    }
+
+    async function loadAllDatasets() {
+      try {
+        const [shipRaw, effRaw, wipRaw] = await Promise.all([
+          fetchSheetData('shipmentstatusdata.xlsx'),
+          fetchSheetData('line_efficiency_202609291531.csv'),
+          fetchSheetData('daily_wip_summary_202609291515.csv')
+        ]);
+
+        // Parse Shipment
+        shipData = shipRaw.map(r => ({
+          SONo: r.SONo || r['SO No.'] || '-', Customer: r.Customer || r.Buyer || '-',
+          SalesOffice: r.SalesOffice || r.Merchant || '-', Style: r.Style || r['Style No'] || '-',
+          StyleDesc: r.StyleDesc || r.Description || '-', BuyerPO: r.BuyerPO || r['Buyer PO'] || r['PO Number'] || '-', 
+          ExFactDt: parseDate(r.ExFactDt || r['Ex-Fact Date'] || r.plannedDate),
+          CSUnit: r.CSUnit || '-', ProdUnit: r.ProdUnit || r.Plant || '-', ExFactUnit: r.ExFactUnit || '-',
+          OrderQty: parseFloat(r.OrderQty || r['Order Qty'] || r.qty) || 0,
+          ExFactQty: parseFloat(r.ExFactQty || r['Shipped Qty'] || r.shipped) || 0, 
+          PendingExFactQty: parseFloat(r.PendingExFactQty || r['Pending Qty'] || r.balance) || 0,
+          ExFactStatus: r.ExFactStatus || r.Status || r.status || '-',
+          CuttingIssued: parseFloat(r.CuttingIssued || r['Cut Issued']) || 0, Stitched: parseFloat(r.Stitched) || 0,
+          Finished: parseFloat(r.Finished) || 0, Packed: parseFloat(r.Packed) || 0,
+          BalToCut: parseFloat(r.BalToCut) || 0, BalToSew: parseFloat(r.BalToSew) || 0, 
+          BalToFinish: parseFloat(r.BalToFinish) || 0, BalToPack: parseFloat(r.BalToPack) || 0
+        }));
+
+        // Parse Efficiency
+        effData = effRaw.map(r => ({
+          Plant: r.physicalplant || r.plantcode || '-', Line: r.line || '-', StyleNo: r.styleno || '-', StyleDesc: r.styledesc || '-',
+          PrdDate: parseDate(r.prd_date), OrderQty: parseFloat(r.orderqty) || 0, SMV: parseFloat(r.smv) || 0,
+          DailyProdQty: parseFloat(r.dailyprodqty) || 0, MTDPlanQty: parseFloat(r.mtdplanqty) || 0,
+          MTDProdQty: parseFloat(r.mtdprodqty) || 0, MTDPlanEff: parseFloat(r.mtdplaneffpct) || 0,
+          MTDActualEff: parseFloat(r.mtdactualeffpct) || 0
+        }));
+
+        // Parse WIP
+        wipData = wipRaw.map(r => ({
+          Unit: r.unit || '-', Department: r.department || '-',
+          PlanDaily: parseFloat(r.planDaily) || 0, ActualDaily: parseFloat(r.actualdaily) || 0,
+          AltrejDaily: parseFloat(r.altrejdaily) || 0, PlanMTD: parseFloat(r.planMTD) || 0,
+          ActualMTD: parseFloat(r.actualMTD) || 0, AltrejMTD: parseFloat(r.altrejMTD) || 0,
+          FinalRej: parseFloat(r.finalrej) || 0, MonthOpnBal: parseFloat(r.MonthOpnBal) || 0,
+          MTDBal: parseFloat(r.MTDBal) || 0, MonthClsBal: parseFloat(r.MonthClsBal) || 0
+        }));
+
+        // Init Dropdowns
+        ship_clearFilters(); eff_clearFilters(); wip_clearFilters();
+
+        const badge = document.getElementById('dataStatusBadge');
+        badge.className = 'badge bg-success text-white px-3 py-2 fs-6 rounded-pill shadow-sm';
+        badge.innerHTML = `<i class="fa-solid fa-circle-check me-1"></i> Data Loaded Successfully`;
+        
+        switchTab('shipment'); // trigger initial render
+      } catch (err) {
+        console.error(err);
+        const badge = document.getElementById('dataStatusBadge');
+        badge.className = 'badge bg-danger text-white px-3 py-2 fs-6 rounded-pill';
+        badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Error Loading Data`;
+      }
+    }
+
+    // --- UTILS ---
+    function updateSelect(id, options) {
+      const el = document.getElementById(id);
+      const val = el.value;
+      el.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join('');
+      el.value = options.includes(val) ? val : 'ALL';
+    }
+
+    const commonDataLabels = {
+        color: '#ffffff', font: { weight: 'bold', size: 11 }, clip: true,
+        display: function(ctx) {
+            var v = ctx.dataset.data[ctx.dataIndex];
+            var m = ctx.chart.scales.y.max;
+            // Display label only if segment represents >= 4% of the ENTIRE chart height
+            return (v > 0 && m > 0 && (v / m) >= 0.04);
+        },
+        anchor: 'center', align: 'center'
+    };
+
+    // ==========================================
+    // MODULE 1: SHIPMENT
+    // ==========================================
+    function ship_updateFilters(changed) {
+      let r = shipData;
+      let p = document.getElementById('shipPlantSelect').value;
+      if (p !== 'ALL') r = r.filter(x => x.ProdUnit === p);
+      
+      if (changed === 'shipPlantSelect') {
+        updateSelect('shipCustomerSelect', ['ALL', ...new Set(r.map(x => x.Customer))]);
+        return ship_updateFilters('shipCustomerSelect');
+      }
+      let c = document.getElementById('shipCustomerSelect').value;
+      if (c !== 'ALL') r = r.filter(x => x.Customer === c);
+      
+      if (changed === 'shipCustomerSelect') {
+        updateSelect('shipStyleSelect', ['ALL', ...new Set(r.map(x => x.Style))]);
+        return ship_updateFilters('shipStyleSelect');
+      }
+      if (changed === 'shipStyleSelect') ship_render();
+    }
+    
+    function ship_clearFilters() {
+      updateSelect('shipPlantSelect', ['ALL', ...new Set(shipData.map(x => x.ProdUnit))]);
+      document.getElementById('shipCustomerSelect').innerHTML = '<option value="ALL">ALL</option>';
+      document.getElementById('shipStyleSelect').innerHTML = '<option value="ALL">ALL</option>';
+      shipDatePicker.clear();
+      ship_updateFilters('shipPlantSelect');
+    }
+
+    function ship_toggleGroup(mode) { ship_groupMode = mode; ship_clearFilters(); }
+
+    function ship_render() {
+      let r = shipData;
+      let p = document.getElementById('shipPlantSelect').value;
+      let c = document.getElementById('shipCustomerSelect').value;
+      let s = document.getElementById('shipStyleSelect').value;
+      let d = document.getElementById('shipDateSelect').value;
+
+      if(p!=='ALL') r = r.filter(x=>x.ProdUnit===p);
+      if(c!=='ALL') r = r.filter(x=>x.Customer===c);
+      if(s!=='ALL') r = r.filter(x=>x.Style===s);
+      if(d) {
+        if(d.includes(' to ')) {
+          let [sd, ed] = d.split(' to ');
+          r = r.filter(x => x.ExFactDt !== '-' && new Date(x.ExFactDt) >= new Date(sd) && new Date(x.ExFactDt) <= new Date(ed));
+        } else {
+          r = r.filter(x => x.ExFactDt === d);
+        }
+      }
+      ship_filtered = r; ship_page = 1; ship_drawTable();
+
+      const grps = [...new Set(r.map(x => x[ship_groupMode]))];
+      const shipped = {}, bal = {};
+      grps.forEach(g => { shipped[g] = 0; bal[g] = 0; });
+      r.forEach(x => { shipped[x[ship_groupMode]] += x.ExFactQty; bal[x[ship_groupMode]] += x.PendingExFactQty; });
+
+      document.getElementById('shipChartTitle').innerText = `${ship_groupMode}-wise Shipped vs Remaining Balance`;
+
+      const chartLabels = grps.map(g => {
+        const total = shipped[g] + bal[g];
+        return [total.toLocaleString(), g];
+      });
+
+      const ctx = document.getElementById('shipChartCanvas').getContext('2d');
+      if (ship_chartInst) ship_chartInst.destroy();
+      ship_chartInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: chartLabels,
+          datasets: [
+            { label: 'ExFact Qty (Shipped)', data: grps.map(g => shipped[g]), backgroundColor: '#3b82f6' },
+            { label: 'Pending ExFact Qty (Balance)', data: grps.map(g => bal[g]), backgroundColor: '#f97316' }
+          ]
+        },
+        options: { 
+          responsive: true, maintainAspectRatio: false, layout: { padding: { top: 10 } },
+          scales: { 
+            x: { stacked: true, grid: {display:false}, ticks: {color:'#f8fafc', font:{weight:'bold'}} }, 
+            y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: {color:'#cbd5e1'} } 
+          },
+          plugins: {
+            legend: { position: 'top', align: 'end', labels: { color: '#ffffff' } },
+            datalabels: { ...commonDataLabels, formatter: v => v.toLocaleString() },
+            tooltip: { 
+              mode: 'index', intersect: false, backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#ffffff', bodyColor: '#e2e8f0', borderColor: 'rgba(255, 255, 255, 0.2)',
+              borderWidth: 1, padding: 12, displayColors: true,
+              callbacks: { 
+                label: function(ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y.toLocaleString(); },
+                footer: items => 'Total Quantity: ' + items.reduce((sum, i) => sum+i.parsed.y, 0).toLocaleString() 
+              },
+              footerFont: { weight: 'bold', size: 13 }, footerMarginTop: 10, footerColor: '#ffffff'
+            }
+          }
+        }
+      });
+    }
+
+    function ship_drawTable() {
+      const start = (ship_page - 1) * itemsPerPage;
+      const d = ship_filtered.slice(start, start + itemsPerPage);
+      document.getElementById('shipTableBody').innerHTML = d.map(r => {
+        let statusUpper = r.ExFactStatus.toUpperCase();
+        let badgeClass = 'val-pill-actual';
+        if (statusUpper.includes('SHIPPED') || statusUpper.includes('ON TRACK')) badgeClass = 'val-pill-success';
+        else if (statusUpper.includes('DELAYED') || statusUpper.includes('TOUGH')) badgeClass = 'val-pill-danger';
+
+        return `<tr>
+          <td>${r.SONo}</td><td><strong>${r.Customer}</strong></td><td>${r.SalesOffice}</td><td><code>${r.Style}</code></td>
+          <td class="text-truncate" style="max-width: 120px;" title="${r.StyleDesc}">${r.StyleDesc}</td>
+          <td>${r.BuyerPO}</td><td>${r.ExFactDt}</td><td>${r.CSUnit}</td><td>${r.ProdUnit}</td><td>${r.ExFactUnit}</td>
+          <td class="text-end fw-bold">${r.OrderQty.toLocaleString()}</td>
+          <td class="text-end fw-bold text-primary">${r.ExFactQty.toLocaleString()}</td>
+          <td class="text-end fw-bold text-orange">${r.PendingExFactQty.toLocaleString()}</td>
+          <td class="text-center"><span class="val-pill ${badgeClass}">${r.ExFactStatus}</span></td>
+          <td class="text-end">${r.CuttingIssued.toLocaleString()}</td><td class="text-end">${r.Stitched.toLocaleString()}</td>
+          <td class="text-end">${r.Finished.toLocaleString()}</td><td class="text-end">${r.Packed.toLocaleString()}</td>
+          <td class="text-end text-muted">${r.BalToCut.toLocaleString()}</td><td class="text-end text-muted">${r.BalToSew.toLocaleString()}</td>
+          <td class="text-end text-muted">${r.BalToFinish.toLocaleString()}</td><td class="text-end text-muted">${r.BalToPack.toLocaleString()}</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('shipPageInfo').innerText = `Showing ${d.length ? start+1 : 0} to ${start+d.length} of ${ship_filtered.length} entries`;
+      document.getElementById('shipBtnPrev').disabled = ship_page === 1;
+      document.getElementById('shipBtnNext').disabled = (start + itemsPerPage) >= ship_filtered.length;
+    }
+    function ship_changePage(delta) { ship_page += delta; ship_drawTable(); }
+
+    // ==========================================
+    // MODULE 2: EFFICIENCY
+    // ==========================================
+    function eff_updateFilters(changed) {
+      let r = effData;
+      let p = document.getElementById('effPlantSelect').value;
+      if (p !== 'ALL') r = r.filter(x => x.Plant === p);
+      
+      if (changed === 'effPlantSelect') {
+        updateSelect('effLineSelect', ['ALL', ...new Set(r.map(x => x.Line))]);
+        return eff_updateFilters('effLineSelect');
+      }
+      let l = document.getElementById('effLineSelect').value;
+      if (l !== 'ALL') r = r.filter(x => x.Line === l);
+      
+      if (changed === 'effLineSelect') {
+        updateSelect('effStyleSelect', ['ALL', ...new Set(r.map(x => x.StyleNo))]);
+        return eff_updateFilters('effStyleSelect');
+      }
+      if (changed === 'effStyleSelect') eff_render();
+    }
+    
+    function eff_clearFilters() {
+      updateSelect('effPlantSelect', ['ALL', ...new Set(effData.map(x => x.Plant))]);
+      document.getElementById('effLineSelect').innerHTML = '<option value="ALL">ALL</option>';
+      document.getElementById('effStyleSelect').innerHTML = '<option value="ALL">ALL</option>';
+      effDatePicker.clear();
+      eff_updateFilters('effPlantSelect');
+    }
+
+    function eff_toggleMetric(mode) { eff_metricMode = mode; eff_render(); }
+
+    function eff_render() {
+      let r = effData;
+      let p = document.getElementById('effPlantSelect').value;
+      let l = document.getElementById('effLineSelect').value;
+      let s = document.getElementById('effStyleSelect').value;
+      let d = document.getElementById('effDateSelect').value;
+
+      if(p!=='ALL') r = r.filter(x=>x.Plant===p);
+      if(l!=='ALL') r = r.filter(x=>x.Line===l);
+      if(s!=='ALL') r = r.filter(x=>x.StyleNo===s);
+      if(d) {
+        if(d.includes(' to ')) {
+          let [sd, ed] = d.split(' to ');
+          r = r.filter(x => x.PrdDate !== '-' && new Date(x.PrdDate) >= new Date(sd) && new Date(x.PrdDate) <= new Date(ed));
+        } else {
+          r = r.filter(x => x.PrdDate === d);
+        }
+      }
+      eff_filtered = r; eff_page = 1; eff_drawTable();
+
+      const grps = [...new Set(r.map(x => x.Line))];
+      const pEff = {}, aEff = {}, cnt = {}, pQty = {}, aQty = {};
+      grps.forEach(g => { pEff[g]=0; aEff[g]=0; cnt[g]=0; pQty[g]=0; aQty[g]=0; });
+      r.forEach(x => { pEff[x.Line]+=x.MTDPlanEff; aEff[x.Line]+=x.MTDActualEff; pQty[x.Line]+=x.MTDPlanQty; aQty[x.Line]+=x.MTDProdQty; cnt[x.Line]++; });
+
+      let ds1, ds2, lb1, lb2, cl1 = '#3b82f6', cl2 = '#10b981';
+      if(eff_metricMode === 'Efficiency') {
+        ds1 = grps.map(g => cnt[g] ? parseFloat((pEff[g]/cnt[g]).toFixed(2)) : 0);
+        ds2 = grps.map(g => cnt[g] ? parseFloat((aEff[g]/cnt[g]).toFixed(2)) : 0);
+        lb1 = 'Plan Eff %'; lb2 = 'Actual Eff %';
+      } else {
+        ds1 = grps.map(g => pQty[g]); ds2 = grps.map(g => aQty[g]);
+        lb1 = 'MTD Plan Qty'; lb2 = 'MTD Actual Qty'; cl1 = '#8b5cf6'; cl2 = '#f97316';
+      }
+
+      document.getElementById('effChartTitle').innerText = eff_metricMode === 'Efficiency' ? 'Line-wise Performance (Efficiency %)' : 'Line-wise Performance (MTD Qty)';
+
+      const ctx = document.getElementById('effChartCanvas').getContext('2d');
+      if (eff_chartInst) eff_chartInst.destroy();
+      eff_chartInst = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: grps, datasets: [{ label: lb1, data: ds1, backgroundColor: cl1 }, { label: lb2, data: ds2, backgroundColor: cl2 }] },
+        options: { 
+          responsive: true, maintainAspectRatio: false, layout: { padding: { top: 10 } },
+          scales: { x: { grid: {display:false}, ticks: {color:'#f8fafc', font:{weight:'bold'}} }, y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: {color:'#cbd5e1'} } },
+          plugins: {
+            legend: { position: 'top', align: 'end', labels: { color: '#ffffff' } },
+            datalabels: { ...commonDataLabels, formatter: v => eff_metricMode === 'Efficiency' ? v+'%' : Number(v).toLocaleString() },
+            tooltip: { 
+              mode: 'index', intersect: false, backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#ffffff', bodyColor: '#e2e8f0', borderColor: 'rgba(255, 255, 255, 0.2)', borderWidth: 1, padding: 12,
+              callbacks: { label: ctx => ctx.dataset.label + ': ' + (eff_metricMode === 'Efficiency' ? ctx.parsed.y+'%' : ctx.parsed.y.toLocaleString()) }
+            }
+          }
+        }
+      });
+    }
+
+    function eff_drawTable() {
+      const start = (eff_page - 1) * itemsPerPage;
+      const d = eff_filtered.slice(start, start + itemsPerPage);
+      document.getElementById('effTableBody').innerHTML = d.map(r => `<tr>
+          <td><strong>${r.Plant}</strong></td><td><code>${r.Line}</code></td><td>${r.StyleNo}</td>
+          <td class="text-truncate" style="max-width: 150px;" title="${r.StyleDesc}">${r.StyleDesc}</td>
+          <td>${r.PrdDate}</td>
+          <td class="text-end">${r.OrderQty.toLocaleString()}</td><td class="text-end">${r.SMV.toFixed(2)}</td>
+          <td class="text-end fw-bold text-primary">${r.DailyProdQty.toLocaleString()}</td><td class="text-end">${r.MTDPlanQty.toLocaleString()}</td>
+          <td class="text-end fw-bold text-success">${r.MTDProdQty.toLocaleString()}</td><td class="text-end">${r.MTDPlanEff.toFixed(2)}%</td>
+          <td class="text-end fw-bold text-info">${r.MTDActualEff.toFixed(2)}%</td>
+        </tr>`).join('');
+      document.getElementById('effPageInfo').innerText = `Showing ${d.length ? start+1 : 0} to ${start+d.length} of ${eff_filtered.length} entries`;
+      document.getElementById('effBtnPrev').disabled = eff_page === 1;
+      document.getElementById('effBtnNext').disabled = (start + itemsPerPage) >= eff_filtered.length;
+    }
+    function eff_changePage(delta) { eff_page += delta; eff_drawTable(); }
+
+    // ==========================================
+    // MODULE 3: WIP SUMMARY
+    // ==========================================
+    function wip_updateFilters(changed) {
+      let r = wipData;
+      let u = document.getElementById('wipUnitSelect').value;
+      if (u !== 'ALL') r = r.filter(x => x.Unit === u);
+      
+      if (changed === 'wipUnitSelect') {
+        updateSelect('wipDeptSelect', ['ALL', ...new Set(r.map(x => x.Department))]);
+        return wip_updateFilters('wipDeptSelect');
+      }
+      if (changed === 'wipDeptSelect') wip_render();
+    }
+    
+    function wip_clearFilters() {
+      updateSelect('wipUnitSelect', ['ALL', ...new Set(wipData.map(x => x.Unit))]);
+      document.getElementById('wipDeptSelect').innerHTML = '<option value="ALL">ALL</option>';
+      wip_updateFilters('wipUnitSelect');
+    }
+
+    function wip_toggleGroup(mode) { wip_groupMode = mode; wip_clearFilters(); }
+
+    function wip_render() {
+      let r = wipData;
+      let u = document.getElementById('wipUnitSelect').value;
+      let d = document.getElementById('wipDeptSelect').value;
+
+      if(u!=='ALL') r = r.filter(x=>x.Unit===u);
+      if(d!=='ALL') r = r.filter(x=>x.Department===d);
+      
+      wip_filtered = r; wip_page = 1; wip_drawTable();
+
+      const grps = [...new Set(r.map(x => x[wip_groupMode]))];
+      const pMTD = {}, aMTD = {};
+      grps.forEach(g => { pMTD[g] = 0; aMTD[g] = 0; });
+      r.forEach(x => { pMTD[x[wip_groupMode]] += x.PlanMTD; aMTD[x[wip_groupMode]] += x.ActualMTD; });
+
+      document.getElementById('wipChartTitle').innerText = `${wip_groupMode}-wise MTD Planned vs Actual`;
+
+      const ctx = document.getElementById('wipChartCanvas').getContext('2d');
+      if (wip_chartInst) wip_chartInst.destroy();
+      wip_chartInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: grps,
+          datasets: [
+            { label: 'Plan MTD', data: grps.map(g => pMTD[g]), backgroundColor: '#6366f1' },
+            { label: 'Actual MTD', data: grps.map(g => aMTD[g]), backgroundColor: '#ec4899' }
+          ]
+        },
+        options: { 
+          responsive: true, maintainAspectRatio: false, layout: { padding: { top: 10 } },
+          scales: { x: { grid: {display:false}, ticks: {color:'#f8fafc', font:{weight:'bold'}} }, y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: {color:'#cbd5e1'} } },
+          plugins: {
+            legend: { position: 'top', align: 'end', labels: { color: '#ffffff' } },
+            datalabels: { ...commonDataLabels, formatter: v => v.toLocaleString() },
+            tooltip: { 
+              mode: 'index', intersect: false, backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#ffffff', bodyColor: '#e2e8f0', borderColor: 'rgba(255, 255, 255, 0.2)', borderWidth: 1, padding: 12,
+              callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toLocaleString() }
+            }
+          }
+        }
+      });
+    }
+
+    function wip_drawTable() {
+      const start = (wip_page - 1) * itemsPerPage;
+      const d = wip_filtered.slice(start, start + itemsPerPage);
+      document.getElementById('wipTableBody').innerHTML = d.map(r => `<tr>
+          <td><strong>${r.Unit}</strong></td><td><code>${r.Department}</code></td>
+          <td class="text-end">${r.PlanDaily.toLocaleString()}</td><td class="text-end text-primary">${r.ActualDaily.toLocaleString()}</td><td class="text-end">${r.AltrejDaily.toLocaleString()}</td>
+          <td class="text-end bg-light fw-bold">${r.PlanMTD.toLocaleString()}</td><td class="text-end bg-light fw-bold text-success">${r.ActualMTD.toLocaleString()}</td><td class="text-end bg-light text-danger">${r.AltrejMTD.toLocaleString()}</td>
+          <td class="text-end text-danger">${r.FinalRej.toLocaleString()}</td>
+          <td class="text-end">${r.MonthOpnBal.toLocaleString()}</td><td class="text-end text-primary fw-bold">${r.MTDBal.toLocaleString()}</td><td class="text-end fw-bold" style="color:#0f172a;">${r.MonthClsBal.toLocaleString()}</td>
+        </tr>`).join('');
+      document.getElementById('wipPageInfo').innerText = `Showing ${d.length ? start+1 : 0} to ${start+d.length} of ${wip_filtered.length} entries`;
+      document.getElementById('wipBtnPrev').disabled = wip_page === 1;
+      document.getElementById('wipBtnNext').disabled = (start + itemsPerPage) >= wip_filtered.length;
+    }
+    function wip_changePage(delta) { wip_page += delta; wip_drawTable(); }
+  </script>
+</body>
+</html>

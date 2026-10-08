@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shipment Status - Pearl Global</title>
+  <title>Order Status - Pearl Global Central</title>
 
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -22,154 +22,255 @@
 
   <style>
     :root { --primary: #1e40af; --bg-surface: #f8fafc; --border-color: #e2e8f0; --text-main: #0f172a; --text-muted: #64748b; }
-    body { background-color: var(--bg-surface); font-family: 'Segoe UI', system-ui, sans-serif; color: var(--text-main); padding-top: 75px; }
+    body { background-color: var(--bg-surface); font-family: 'Segoe UI', system-ui, sans-serif; color: var(--text-main); padding-top: 135px; }
 
-    .top-navbar-clean { position: fixed; top: 0; left: 0; right: 0; height: 64px; background: #ffffff; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 1050; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    /* Portal Navigation Styling */
+    .portal-header { background-color: #0f172a; color: white; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: fixed; top: 0; left: 0; right: 0; z-index: 1050; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .sub-header { position: fixed; top: 60px; left: 0; right: 0; background: #ffffff; border-bottom: 1px solid var(--border-color); z-index: 1040; padding: 12px 24px 0 24px; }
+    
+    .nav-tabs .nav-link { color: var(--text-muted); border: none; border-bottom: 3px solid transparent; font-weight: 600; padding: 8px 20px; margin-bottom: -1px; cursor: pointer; transition: 0.2s all; }
+    .nav-tabs .nav-link:hover { color: var(--primary); }
+    .nav-tabs .nav-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: transparent; }
+
+    /* Component Cards */
     .filter-card, .table-card { background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); margin-bottom: 20px; }
     .filter-card { padding: 12px 20px; } .table-card { padding: 12px 16px; }
     .filter-label { font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; display: block; }
     
-    /* Black Smoky Glass Effect for the Graph Container */
+    /* Smoky Glass Chart Container */
     .chart-card { 
       background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.95) 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px; 
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      margin-bottom: 20px; 
-      padding: 20px; 
-      color: #ffffff; 
+      backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; 
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); margin-bottom: 20px; padding: 20px; color: #ffffff; 
     }
-    .chart-card h6 { color: #ffffff !important; }
-    .chart-box { position: relative; height: 420px; width: 100%; }
+    .chart-box { position: relative; height: 380px; width: 100%; }
+    .date-input { background-color: #fff !important; cursor: pointer; }
 
-    #shipDateSelect { background-color: #fff; cursor: pointer; }
-
-    /* Ultra-Compact Table Styling */
-    .table-responsive { overflow-x: auto; margin-bottom: 0; min-height: 300px; }
-    .table thead th { 
-      background: #f8fafc; color: #334155; 
-      font-size: 0.65rem; 
-      font-weight: 700; text-transform: uppercase; 
-      white-space: nowrap; 
-      padding: 4px 6px; 
-      border-bottom: 2px solid #cbd5e1; 
-    }
-    .table tbody td { 
-      vertical-align: middle; 
-      font-size: 0.7rem; 
-      padding: 4px 6px; 
-      white-space: nowrap; 
-    }
+    /* Table Styling */
+    .table-responsive { overflow-x: auto; margin-bottom: 0; min-height: 250px; }
+    .table thead th { background: #f8fafc; color: #334155; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; padding: 6px 8px; border-bottom: 2px solid #cbd5e1; }
+    .table tbody td { vertical-align: middle; font-size: 0.7rem; padding: 5px 8px; white-space: nowrap; }
     
-    .val-pill { display: inline-block; padding: 1px 6px; border-radius: 12px; font-weight: 600; font-size: 0.65rem; }
-    .val-pill-target { background: #e0f2fe; color: #0369a1; } .val-pill-actual { background: #dbeafe; color: #1e40af; }
-    .val-pill-warn { background: #ffedd5; color: #c2410c; } .val-pill-danger { background: #fee2e2; color: #b91c1c; }
+    .val-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 0.65rem; }
+    .val-pill-actual { background: #dbeafe; color: #1e40af; }
+    .val-pill-danger { background: #fee2e2; color: #b91c1c; }
     .val-pill-success { background: #dcfce7; color: #15803d; }
-
-    .text-orange { color: #ea580c !important; }
   </style>
 </head>
 <body>
 
-  <header class="top-navbar-clean">
-    <div class="d-flex align-items-center gap-4">
-      <span class="fw-bold fs-4 text-primary"><i class="fa-solid fa-ship me-2"></i>Shipment Status</span>
-    </div>
+  <!-- Main Portal Header -->
+  <header class="portal-header">
     <div class="d-flex align-items-center gap-3">
-      <span id="dataStatusBadge" class="badge bg-warning-subtle text-warning border px-3 py-2"><i class="fa-solid fa-spinner fa-spin me-1"></i> Fetching Data...</span>
+      <i class="fa-solid fa-globe fs-4 text-primary"></i>
+      <span class="fw-bold fs-5">Pearl Global Central</span>
+    </div>
+    <div class="d-flex align-items-center">
+      <span id="dataStatusBadge" class="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill">
+        <i class="fa-solid fa-spinner fa-spin me-1"></i> Fetching Data...
+      </span>
     </div>
   </header>
 
-  <main class="container-fluid px-4">
-    <!-- Filters (Cascading) -->
-    <div class="filter-card">
-      <div class="row g-2 align-items-end">
-        <div class="col-lg-2 col-md-4">
-          <label class="filter-label">Plant (ProdUnit)</label>
-          <select class="form-select form-select-sm" id="shipPlantSelect" onchange="updateFilters('shipPlantSelect')"></select>
-        </div>
-        <div class="col-lg-2 col-md-4">
-          <label class="filter-label">Customer</label>
-          <select class="form-select form-select-sm" id="shipCustomerSelect" onchange="updateFilters('shipCustomerSelect')"></select>
-        </div>
-        <div class="col-lg-3 col-md-4">
-          <label class="filter-label">Style No</label>
-          <select class="form-select form-select-sm" id="shipStyleSelect" onchange="updateFilters('shipStyleSelect')"></select>
-        </div>
-        <div class="col-lg-3 col-md-8">
-          <label class="filter-label">Ex-Fact Date Range</label>
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-white"><i class="fa-regular fa-calendar-days text-muted"></i></span>
-            <input type="text" class="form-control" id="shipDateSelect" placeholder="Select Dates...">
+  <!-- Sub Navigation (Order Status) -->
+  <div class="sub-header">
+    <h6 class="text-uppercase fw-bold text-muted mb-2" style="font-size: 0.75rem; letter-spacing: 1px;">Header Tab <i class="fa-solid fa-angle-right mx-1"></i> Order Status</h6>
+    <ul class="nav nav-tabs border-0" id="portalTabs">
+      <li class="nav-item">
+        <a class="nav-link active" id="tab-shipment" onclick="switchTab('shipment')"><i class="fa-solid fa-ship me-1"></i> Shipment Status</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="tab-efficiency" onclick="switchTab('efficiency')"><i class="fa-solid fa-chart-line me-1"></i> Line Efficiency</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="tab-wip" onclick="switchTab('wip')"><i class="fa-solid fa-clipboard-list me-1"></i> Daily WIP Summary</a>
+      </li>
+    </ul>
+  </div>
+
+  <main class="container-fluid px-4 pt-3">
+    
+    <!-- ==========================================
+         TAB 1: SHIPMENT STATUS
+    =========================================== -->
+    <div id="pane-shipment" class="tab-pane d-block">
+      <!-- Filters -->
+      <div class="filter-card">
+        <div class="row g-2 align-items-end">
+          <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Plant</label>
+            <select class="form-select form-select-sm" id="shipPlantSelect" onchange="ship_updateFilters('shipPlantSelect')"></select>
+          </div>
+          <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Customer</label>
+            <select class="form-select form-select-sm" id="shipCustomerSelect" onchange="ship_updateFilters('shipCustomerSelect')"></select>
+          </div>
+          <div class="col-lg-3 col-md-4">
+            <label class="filter-label">Style No</label>
+            <select class="form-select form-select-sm" id="shipStyleSelect" onchange="ship_updateFilters('shipStyleSelect')"></select>
+          </div>
+          <div class="col-lg-3 col-md-8">
+            <label class="filter-label">Ex-Fact Date Range</label>
+            <input type="text" class="form-control form-control-sm date-input" id="shipDateSelect" placeholder="Select Dates...">
+          </div>
+          <div class="col-lg-2 col-md-4 d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm w-50" onclick="ship_clearFilters()">Clear</button>
+            <button class="btn btn-primary btn-sm w-50" onclick="ship_render()"><i class="fa-solid fa-filter"></i> Apply</button>
           </div>
         </div>
-        <div class="col-lg-2 col-md-4 d-flex gap-2">
-          <button class="btn btn-outline-secondary btn-sm w-50" onclick="clearFilters()">Clear</button>
-          <button class="btn btn-primary btn-sm w-50" onclick="renderShipmentModule()"><i class="fa-solid fa-filter me-1"></i> Apply</button>
+      </div>
+      <!-- Chart -->
+      <div class="chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold mb-0 text-white" id="shipChartTitle">Customer-wise Shipped vs Remaining Balance</h6>
+          <div class="btn-group btn-group-sm">
+            <input type="radio" class="btn-check" name="shipToggle" id="shipToggleCust" checked onchange="ship_toggleGroup('Customer')">
+            <label class="btn btn-outline-light" for="shipToggleCust">Customer-wise</label>
+            <input type="radio" class="btn-check" name="shipToggle" id="shipToggleStyle" onchange="ship_toggleGroup('Style')">
+            <label class="btn btn-outline-light" for="shipToggleStyle">Style-wise</label>
+          </div>
+        </div>
+        <div class="chart-box"><canvas id="shipChartCanvas"></canvas></div>
+      </div>
+      <!-- Table -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered mb-0">
+            <thead>
+              <tr>
+                <th>SONo</th><th>Customer</th><th>SalesOffice</th><th>Style</th><th>BuyerPO</th><th>ExFactDt</th><th>ProdUnit</th>
+                <th class="text-end">OrderQty</th><th class="text-end">ExFactQty</th><th class="text-end">PendingEx</th><th class="text-center">Status</th>
+                <th class="text-end">Cut</th><th class="text-end">Sew</th><th class="text-end">Finish</th><th class="text-end">Pack</th>
+              </tr>
+            </thead>
+            <tbody id="shipTableBody"></tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <span id="shipPageInfo" class="text-muted small fw-bold"></span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" id="shipBtnPrev" onclick="ship_changePage(-1)">Prev</button>
+            <button class="btn btn-outline-secondary" id="shipBtnNext" onclick="ship_changePage(1)">Next</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Chart (Black Smoky Glass) -->
-    <div class="chart-card">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="fw-bold mb-0" id="chartTitle">Customer-wise Shipped vs Remaining Balance</h6>
-        
-        <!-- Toggle Switch for Chart Grouping -->
-        <div class="btn-group btn-group-sm" role="group">
-          <input type="radio" class="btn-check" name="chartToggle" id="toggleCustomer" autocomplete="off" checked onchange="toggleChartGroup('Customer')">
-          <label class="btn btn-outline-light" for="toggleCustomer">Customer-wise</label>
-
-          <input type="radio" class="btn-check" name="chartToggle" id="toggleStyle" autocomplete="off" onchange="toggleChartGroup('Style')">
-          <label class="btn btn-outline-light" for="toggleStyle">Style-wise</label>
+    <!-- ==========================================
+         TAB 2: LINE EFFICIENCY
+    =========================================== -->
+    <div id="pane-efficiency" class="tab-pane d-none">
+      <div class="filter-card">
+        <div class="row g-2 align-items-end">
+          <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Plant</label>
+            <select class="form-select form-select-sm" id="effPlantSelect" onchange="eff_updateFilters('effPlantSelect')"></select>
+          </div>
+          <div class="col-lg-2 col-md-4">
+            <label class="filter-label">Line</label>
+            <select class="form-select form-select-sm" id="effLineSelect" onchange="eff_updateFilters('effLineSelect')"></select>
+          </div>
+          <div class="col-lg-3 col-md-4">
+            <label class="filter-label">Style No</label>
+            <select class="form-select form-select-sm" id="effStyleSelect" onchange="eff_updateFilters('effStyleSelect')"></select>
+          </div>
+          <div class="col-lg-3 col-md-8">
+            <label class="filter-label">Production Date Range</label>
+            <input type="text" class="form-control form-control-sm date-input" id="effDateSelect" placeholder="Select Dates...">
+          </div>
+          <div class="col-lg-2 col-md-4 d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm w-50" onclick="eff_clearFilters()">Clear</button>
+            <button class="btn btn-primary btn-sm w-50" onclick="eff_render()"><i class="fa-solid fa-filter"></i> Apply</button>
+          </div>
         </div>
       </div>
-      
-      <div class="chart-box"><canvas id="shipmentChart"></canvas></div>
+      <div class="chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold mb-0 text-white" id="effChartTitle">Line-wise Performance (Efficiency %)</h6>
+          <div class="btn-group btn-group-sm">
+            <input type="radio" class="btn-check" name="effToggle" id="effToggleEff" checked onchange="eff_toggleMetric('Efficiency')">
+            <label class="btn btn-outline-light" for="effToggleEff">Efficiency %</label>
+            <input type="radio" class="btn-check" name="effToggle" id="effToggleQty" onchange="eff_toggleMetric('Qty')">
+            <label class="btn btn-outline-light" for="effToggleQty">Production Qty</label>
+          </div>
+        </div>
+        <div class="chart-box"><canvas id="effChartCanvas"></canvas></div>
+      </div>
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered mb-0">
+            <thead>
+              <tr>
+                <th>Plant</th><th>Line</th><th>Style No</th><th>Prd Date</th><th class="text-end">Order Qty</th><th class="text-end">SMV</th>
+                <th class="text-end">Daily Prod</th><th class="text-end">MTD Plan Qty</th><th class="text-end">MTD Actual Qty</th>
+                <th class="text-end">MTD Plan Eff %</th><th class="text-end">MTD Actual Eff %</th>
+              </tr>
+            </thead>
+            <tbody id="effTableBody"></tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <span id="effPageInfo" class="text-muted small fw-bold"></span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" id="effBtnPrev" onclick="eff_changePage(-1)">Prev</button>
+            <button class="btn btn-outline-secondary" id="effBtnNext" onclick="eff_changePage(1)">Next</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Data Table with Pagination -->
-    <div class="table-card">
-      <div class="table-responsive">
-        <table class="table table-hover table-bordered mb-0" id="shipmentTable">
-          <thead>
-            <tr>
-              <th>SONo</th>
-              <th>Customer</th>
-              <th>SalesOffice</th>
-              <th>Style</th>
-              <th>StyleDesc</th>
-              <th>BuyerPO</th>
-              <th>ExFactDt</th>
-              <th>CSUnit</th>
-              <th>ProdUnit</th>
-              <th>ExFactUnit</th>
-              <th class="text-end">OrderQty</th>
-              <th class="text-end">ExFactQty</th>
-              <th class="text-end">PendingEx</th>
-              <th class="text-center">ExFactStatus</th>
-              <th class="text-end">CuttingIssued</th>
-              <th class="text-end">Stitched</th>
-              <th class="text-end">Finished</th>
-              <th class="text-end">Packed</th>
-              <th class="text-end">BalToCut</th>
-              <th class="text-end">BalToSew</th>
-              <th class="text-end">BalToFinish</th>
-              <th class="text-end">BalToPack</th>
-            </tr>
-          </thead>
-          <tbody id="shipTableBody"></tbody>
-        </table>
+    <!-- ==========================================
+         TAB 3: DAILY WIP SUMMARY
+    =========================================== -->
+    <div id="pane-wip" class="tab-pane d-none">
+      <div class="filter-card">
+        <div class="row g-2 align-items-end">
+          <div class="col-lg-3 col-md-4">
+            <label class="filter-label">Unit</label>
+            <select class="form-select form-select-sm" id="wipUnitSelect" onchange="wip_updateFilters('wipUnitSelect')"></select>
+          </div>
+          <div class="col-lg-3 col-md-4">
+            <label class="filter-label">Department</label>
+            <select class="form-select form-select-sm" id="wipDeptSelect" onchange="wip_updateFilters('wipDeptSelect')"></select>
+          </div>
+          <div class="col-lg-6 col-md-4 d-flex justify-content-end gap-2">
+            <button class="btn btn-outline-secondary btn-sm px-4" onclick="wip_clearFilters()">Clear</button>
+            <button class="btn btn-primary btn-sm px-4" onclick="wip_render()"><i class="fa-solid fa-filter me-1"></i> Apply</button>
+          </div>
+        </div>
       </div>
-      
-      <!-- Pagination Controls -->
-      <div class="d-flex justify-content-between align-items-center mt-3">
-        <span id="pageInfo" class="text-muted small fw-bold">Showing 0 to 0 of 0 entries</span>
-        <div class="btn-group btn-group-sm">
-          <button class="btn btn-outline-secondary" id="btnPrevPage" onclick="changePage(-1)" disabled>Previous</button>
-          <button class="btn btn-outline-secondary" id="btnNextPage" onclick="changePage(1)" disabled>Next</button>
+      <div class="chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold mb-0 text-white" id="wipChartTitle">Department-wise MTD Planned vs Actual</h6>
+          <div class="btn-group btn-group-sm">
+            <input type="radio" class="btn-check" name="wipToggle" id="wipToggleDept" checked onchange="wip_toggleGroup('Department')">
+            <label class="btn btn-outline-light" for="wipToggleDept">Department-wise</label>
+            <input type="radio" class="btn-check" name="wipToggle" id="wipToggleUnit" onchange="wip_toggleGroup('Unit')">
+            <label class="btn btn-outline-light" for="wipToggleUnit">Unit-wise</label>
+          </div>
+        </div>
+        <div class="chart-box"><canvas id="wipChartCanvas"></canvas></div>
+      </div>
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered mb-0">
+            <thead>
+              <tr>
+                <th>Unit</th><th>Department</th>
+                <th class="text-end">Plan Daily</th><th class="text-end">Actual Daily</th><th class="text-end">Alt Rej Daily</th>
+                <th class="text-end bg-light">Plan MTD</th><th class="text-end bg-light">Actual MTD</th><th class="text-end bg-light">Alt Rej MTD</th>
+                <th class="text-end">Final Rej</th><th class="text-end">Mth Opn Bal</th><th class="text-end text-primary">MTD Bal</th><th class="text-end fw-bold">Mth Cls Bal</th>
+              </tr>
+            </thead>
+            <tbody id="wipTableBody"></tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <span id="wipPageInfo" class="text-muted small fw-bold"></span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" id="wipBtnPrev" onclick="wip_changePage(-1)">Prev</button>
+            <button class="btn btn-outline-secondary" id="wipBtnNext" onclick="wip_changePage(1)">Next</button>
+          </div>
         </div>
       </div>
     </div>
@@ -178,363 +279,135 @@
   <script>
     Chart.register(ChartDataLabels);
 
-    let shipmentData = [];
-    let shipChart = null;
-    let flatpickrInstance = null;
-    let chartGroupMode = 'Customer'; 
-
-    // Pagination State
-    let currentFilteredRows = [];
-    let currentPage = 1;
+    // Common Configuration
     const itemsPerPage = 50;
+    let activeTab = 'shipment';
+
+    // Global Data Stores
+    let shipData = [], ship_filtered = [], ship_page = 1, ship_chartInst = null, ship_groupMode = 'Customer';
+    let effData = [], eff_filtered = [], eff_page = 1, eff_chartInst = null, eff_metricMode = 'Efficiency';
+    let wipData = [], wip_filtered = [], wip_page = 1, wip_chartInst = null, wip_groupMode = 'Department';
+
+    let shipDatePicker, effDatePicker;
 
     document.addEventListener('DOMContentLoaded', () => {
-      flatpickrInstance = flatpickr("#shipDateSelect", {
-        mode: "range",
-        dateFormat: "Y-m-d",
-        onChange: function(selectedDates) {
-          if (selectedDates.length === 2 || selectedDates.length === 0) {
-            renderShipmentModule();
-          }
-        }
-      });
-
-      // Automatically load data on startup
-      loadLocalData();
+      // Init Date Pickers
+      shipDatePicker = flatpickr("#shipDateSelect", { mode: "range", dateFormat: "Y-m-d", onChange: d => { if(d.length===2 || d.length===0) ship_render(); } });
+      effDatePicker = flatpickr("#effDateSelect", { mode: "range", dateFormat: "Y-m-d", onChange: d => { if(d.length===2 || d.length===0) eff_render(); } });
+      
+      // Load Data Concurrently
+      loadAllDatasets();
     });
 
-    async function loadLocalData() {
+    // --- TAB SWITCHING LOGIC ---
+    function switchTab(tabId) {
+      activeTab = tabId;
+      ['shipment', 'efficiency', 'wip'].forEach(id => {
+        document.getElementById(`tab-${id}`).classList.remove('active');
+        document.getElementById(`pane-${id}`).classList.remove('d-block');
+        document.getElementById(`pane-${id}`).classList.add('d-none');
+      });
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+      document.getElementById(`pane-${tabId}`).classList.remove('d-none');
+      document.getElementById(`pane-${tabId}`).classList.add('d-block');
+      
+      // Re-render chart on active to avoid canvas scaling bugs
+      if(tabId === 'shipment') ship_render();
+      if(tabId === 'efficiency') eff_render();
+      if(tabId === 'wip') wip_render();
+    }
+
+    // --- DATA LOADING ---
+    async function fetchSheetData(filename) {
+      const res = await fetch(filename);
+      if (!res.ok) throw new Error(`File ${filename} not found`);
+      const buf = await res.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    }
+
+    function parseDate(val) {
+      if (!val || val === '-') return '-';
+      if (val instanceof Date) return val.toISOString().split('T')[0];
+      if (typeof val === 'number') {
+        const d = new Date(new Date(1899, 11, 30).getTime() + Math.round(val * 86400000));
+        return d.toISOString().split('T')[0];
+      }
+      return String(val).split('T')[0];
+    }
+
+    async function loadAllDatasets() {
       try {
-        const response = await fetch('shipmentstatusdata.xlsx');
-        if (!response.ok) throw new Error('Network response was not ok');
-        const arrayBuffer = await response.arrayBuffer();
-        
-        const wb = XLSX.read(arrayBuffer, { type: 'array' });
-        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        
-        shipmentData = rows.map(r => ({
-          SONo: r.SONo || r['SO No.'] || '-',
-          Customer: r.Customer || r.Buyer || '-',
-          SalesOffice: r.SalesOffice || r.Merchant || '-',
-          Style: r.Style || r['Style No'] || '-',
-          StyleDesc: r.StyleDesc || r.Description || '-',
-          BuyerPO: r.BuyerPO || r['Buyer PO'] || r['PO Number'] || '-',
-          ExFactDt: formatExcelDate(r.ExFactDt || r['Ex-Fact Date'] || r.plannedDate),
-          CSUnit: r.CSUnit || '-',
-          ProdUnit: r.ProdUnit || r.Plant || '-',
-          ExFactUnit: r.ExFactUnit || '-',
-          OrderQty: parseFloat(r.OrderQty || r['Order Qty'] || r.qty) || 0,
-          ExFactQty: parseFloat(r.ExFactQty || r['Shipped Qty'] || r.shipped) || 0,
-          PendingExFactQty: parseFloat(r.PendingExFactQty || r['Pending Qty'] || r.balance) || 0,
-          ExFactStatus: r.ExFactStatus || r.Status || r.status || '-',
-          CuttingIssued: parseFloat(r.CuttingIssued || r['Cut Issued']) || 0,
-          Stitched: parseFloat(r.Stitched) || 0,
-          Finished: parseFloat(r.Finished) || 0,
-          Packed: parseFloat(r.Packed) || 0,
-          BalToCut: parseFloat(r.BalToCut) || 0,
-          BalToSew: parseFloat(r.BalToSew) || 0,
-          BalToFinish: parseFloat(r.BalToFinish) || 0,
-          BalToPack: parseFloat(r.BalToPack) || 0
+        const [shipRaw, effRaw, wipRaw] = await Promise.all([
+          fetchSheetData('shipmentstatusdata.xlsx'),
+          fetchSheetData('line_efficiency_202609291531.csv'),
+          fetchSheetData('daily_wip_summary_202609291515.csv')
+        ]);
+
+        // Parse Shipment
+        shipData = shipRaw.map(r => ({
+          SONo: r.SONo || r['SO No.'] || '-', Customer: r.Customer || r.Buyer || '-',
+          SalesOffice: r.SalesOffice || r.Merchant || '-', Style: r.Style || r['Style No'] || '-',
+          BuyerPO: r.BuyerPO || r['PO Number'] || '-', ExFactDt: parseDate(r.ExFactDt || r['Ex-Fact Date']),
+          ProdUnit: r.ProdUnit || r.Plant || '-', OrderQty: parseFloat(r.OrderQty || r.qty) || 0,
+          ExFactQty: parseFloat(r.ExFactQty || r.shipped) || 0, PendingExFactQty: parseFloat(r.PendingExFactQty || r.balance) || 0,
+          ExFactStatus: r.ExFactStatus || r.Status || '-',
+          CuttingIssued: parseFloat(r.CuttingIssued) || 0, Stitched: parseFloat(r.Stitched) || 0,
+          Finished: parseFloat(r.Finished) || 0, Packed: parseFloat(r.Packed) || 0
         }));
 
-        populateInitialFilters();
+        // Parse Efficiency
+        effData = effRaw.map(r => ({
+          Plant: r.physicalplant || r.plantcode || '-', Line: r.line || '-', StyleNo: r.styleno || '-',
+          PrdDate: parseDate(r.prd_date), OrderQty: parseFloat(r.orderqty) || 0, SMV: parseFloat(r.smv) || 0,
+          DailyProdQty: parseFloat(r.dailyprodqty) || 0, MTDPlanQty: parseFloat(r.mtdplanqty) || 0,
+          MTDProdQty: parseFloat(r.mtdprodqty) || 0, MTDPlanEff: parseFloat(r.mtdplaneffpct) || 0,
+          MTDActualEff: parseFloat(r.mtdactualeffpct) || 0
+        }));
+
+        // Parse WIP
+        wipData = wipRaw.map(r => ({
+          Unit: r.unit || '-', Department: r.department || '-',
+          PlanDaily: parseFloat(r.planDaily) || 0, ActualDaily: parseFloat(r.actualdaily) || 0,
+          AltrejDaily: parseFloat(r.altrejdaily) || 0, PlanMTD: parseFloat(r.planMTD) || 0,
+          ActualMTD: parseFloat(r.actualMTD) || 0, AltrejMTD: parseFloat(r.altrejMTD) || 0,
+          FinalRej: parseFloat(r.finalrej) || 0, MonthOpnBal: parseFloat(r.MonthOpnBal) || 0,
+          MTDBal: parseFloat(r.MTDBal) || 0, MonthClsBal: parseFloat(r.MonthClsBal) || 0
+        }));
+
+        // Init Dropdowns
+        ship_clearFilters(); eff_clearFilters(); wip_clearFilters();
+
+        const badge = document.getElementById('dataStatusBadge');
+        badge.className = 'badge bg-success text-white px-3 py-2 fs-6 rounded-pill shadow-sm';
+        badge.innerHTML = `<i class="fa-solid fa-circle-check me-1"></i> Data Live`;
         
-        document.getElementById('dataStatusBadge').className = 'badge bg-success-subtle text-success border px-3 py-2';
-        document.getElementById('dataStatusBadge').innerHTML = `<i class="fa-solid fa-circle-check me-1"></i> Data Loaded Successfully`;
-      } catch (error) {
-        console.error("Error loading local excel file:", error);
-        document.getElementById('dataStatusBadge').className = 'badge bg-danger-subtle text-danger border px-3 py-2';
-        document.getElementById('dataStatusBadge').innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Error Loading Data`;
+        switchTab('shipment'); // trigger initial render
+      } catch (err) {
+        console.error(err);
+        const badge = document.getElementById('dataStatusBadge');
+        badge.className = 'badge bg-danger text-white px-3 py-2 fs-6 rounded-pill';
+        badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Error Loading Data`;
       }
     }
 
-    function formatExcelDate(dateVal) {
-      if (!dateVal || dateVal === '-') return '-';
-      if (dateVal instanceof Date) return dateVal.toISOString().split('T')[0];
-      if (typeof dateVal === 'number') {
-        const excelEpoch = new Date(1899, 11, 30);
-        const date = new Date(excelEpoch.getTime() + Math.round(dateVal * 86400000));
-        return date.toISOString().split('T')[0];
-      }
-      return String(dateVal).split('T')[0]; 
-    }
-
-    function updateDropdown(id, optionsArr) {
+    // --- UTILS ---
+    function updateSelect(id, options) {
       const el = document.getElementById(id);
-      const currentVal = el.value;
-      el.innerHTML = optionsArr.map(s => `<option value="${s}">${s}</option>`).join('');
-      if (optionsArr.includes(currentVal)) {
-        el.value = currentVal;
-      } else {
-        el.value = 'ALL';
-      }
+      const val = el.value;
+      el.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join('');
+      el.value = options.includes(val) ? val : 'ALL';
     }
 
-    function populateInitialFilters() {
-      const plants = ['ALL', ...new Set(shipmentData.map(d => d.ProdUnit))];
-      updateDropdown('shipPlantSelect', plants);
-      updateFilters('shipPlantSelect');
-    }
-
-    // Cascading Filter Logic
-    function updateFilters(changedElementId) {
-      const plantFilter = document.getElementById('shipPlantSelect').value;
-      let rows = shipmentData;
-
-      if (plantFilter !== 'ALL') rows = rows.filter(r => r.ProdUnit === plantFilter);
-      
-      if (changedElementId === 'shipPlantSelect') {
-        const customers = ['ALL', ...new Set(rows.map(r => r.Customer))];
-        updateDropdown('shipCustomerSelect', customers);
-        updateFilters('shipCustomerSelect');
-        return;
-      }
-
-      const custFilter = document.getElementById('shipCustomerSelect').value;
-
-      if (custFilter !== 'ALL') rows = rows.filter(r => r.Customer === custFilter);
-
-      if (changedElementId === 'shipCustomerSelect') {
-        const styles = ['ALL', ...new Set(rows.map(r => r.Style))];
-        updateDropdown('shipStyleSelect', styles);
-        updateFilters('shipStyleSelect');
-        return;
-      }
-
-      // If we reach here, trigger render
-      if (changedElementId === 'shipStyleSelect') {
-        renderShipmentModule();
-        return;
-      }
-    }
-
-    function clearFilters() {
-      document.getElementById('shipPlantSelect').value = 'ALL';
-      document.getElementById('shipCustomerSelect').value = 'ALL';
-      document.getElementById('shipStyleSelect').value = 'ALL';
-      if(flatpickrInstance) flatpickrInstance.clear();
-      
-      // Re-populate everything based on clean slate
-      populateInitialFilters();
-    }
-
-    function toggleChartGroup(mode) {
-      chartGroupMode = mode;
-      document.getElementById('chartTitle').innerText = `${mode}-wise Shipped vs Remaining Balance`;
-      
-      // Clear filters entirely so the switch doesn't get stuck on old specific selections
-      clearFilters();
-    }
-
-    // Render Table Page
-    function drawTablePage() {
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      const rowsToRender = currentFilteredRows.slice(startIndex, endIndex);
-
-      const tbody = document.getElementById('shipTableBody');
-      tbody.innerHTML = '';
-
-      rowsToRender.forEach(r => {
-        const statusUpper = r.ExFactStatus.toUpperCase();
-        let badgeClass = 'val-pill-actual';
-        if (statusUpper.includes('SHIPPED') || statusUpper.includes('ON TRACK')) badgeClass = 'val-pill-success';
-        else if (statusUpper.includes('DELAYED') || statusUpper.includes('TOUGH')) badgeClass = 'val-pill-danger';
-        
-        tbody.innerHTML += `<tr>
-            <td>${r.SONo}</td>
-            <td><strong>${r.Customer}</strong></td>
-            <td>${r.SalesOffice}</td>
-            <td><code>${r.Style}</code></td>
-            <td class="text-truncate" style="max-width: 120px;" title="${r.StyleDesc}">${r.StyleDesc}</td>
-            <td>${r.BuyerPO}</td>
-            <td>${r.ExFactDt}</td>
-            <td>${r.CSUnit}</td>
-            <td>${r.ProdUnit}</td>
-            <td>${r.ExFactUnit}</td>
-            <td class="text-end fw-bold">${r.OrderQty.toLocaleString()}</td>
-            <td class="text-end fw-bold text-primary">${r.ExFactQty.toLocaleString()}</td>
-            <td class="text-end fw-bold text-orange">${r.PendingExFactQty.toLocaleString()}</td>
-            <td class="text-center"><span class="val-pill ${badgeClass}">${r.ExFactStatus}</span></td>
-            <td class="text-end">${r.CuttingIssued.toLocaleString()}</td>
-            <td class="text-end">${r.Stitched.toLocaleString()}</td>
-            <td class="text-end">${r.Finished.toLocaleString()}</td>
-            <td class="text-end">${r.Packed.toLocaleString()}</td>
-            <td class="text-end text-muted">${r.BalToCut.toLocaleString()}</td>
-            <td class="text-end text-muted">${r.BalToSew.toLocaleString()}</td>
-            <td class="text-end text-muted">${r.BalToFinish.toLocaleString()}</td>
-            <td class="text-end text-muted">${r.BalToPack.toLocaleString()}</td>
-          </tr>`;
-      });
-
-      // Update Pagination UI
-      const totalItems = currentFilteredRows.length;
-      const displayEnd = Math.min(endIndex, totalItems);
-      const displayStart = totalItems === 0 ? 0 : startIndex + 1;
-      
-      document.getElementById('pageInfo').innerText = `Showing ${displayStart} to ${displayEnd} of ${totalItems} entries`;
-      document.getElementById('btnPrevPage').disabled = currentPage === 1;
-      document.getElementById('btnNextPage').disabled = endIndex >= totalItems;
-    }
-
-    function changePage(delta) {
-      currentPage += delta;
-      drawTablePage();
-    }
-
-    function renderShipmentModule() {
-      const fPlant = document.getElementById('shipPlantSelect').value;
-      const fCust = document.getElementById('shipCustomerSelect').value;
-      const fStyle = document.getElementById('shipStyleSelect').value;
-      const fDateRange = document.getElementById('shipDateSelect').value; 
-
-      let rows = shipmentData;
-      
-      // Apply Table & Chart Filters
-      if (fPlant !== 'ALL') rows = rows.filter(r => r.ProdUnit === fPlant);
-      if (fCust !== 'ALL') rows = rows.filter(r => r.Customer === fCust);
-      if (fStyle !== 'ALL') rows = rows.filter(r => r.Style === fStyle);
-
-      if (fDateRange) {
-        if (fDateRange.includes(' to ')) {
-          const [startStr, endStr] = fDateRange.split(' to ');
-          const startDate = new Date(startStr);
-          const endDate = new Date(endStr);
-          
-          rows = rows.filter(r => {
-            if (!r.ExFactDt || r.ExFactDt === '-') return false;
-            const rDate = new Date(r.ExFactDt);
-            return rDate >= startDate && rDate <= endDate;
-          });
-        } else {
-          rows = rows.filter(r => r.ExFactDt === fDateRange);
-        }
-      }
-
-      currentFilteredRows = rows;
-      currentPage = 1;
-      drawTablePage();
-
-      // Dynamic Chart Grouping
-      const groupKey = chartGroupMode === 'Customer' ? 'Customer' : 'Style';
-      const groups = [...new Set(rows.map(r => r[groupKey]))];
-      const groupShipped = {}, groupBalance = {};
-      groups.forEach(g => { groupShipped[g] = 0; groupBalance[g] = 0; });
-
-      rows.forEach(r => {
-        if(groupShipped[r[groupKey]] !== undefined) {
-            groupShipped[r[groupKey]] += r.ExFactQty; 
-            groupBalance[r[groupKey]] += r.PendingExFactQty;
-        }
-      });
-
-      const chartLabels = groups.map(g => {
-        const total = groupShipped[g] + groupBalance[g];
-        return [total.toLocaleString(), g];
-      });
-
-      // Render Chart
-      const ctx = document.getElementById('shipmentChart').getContext('2d');
-      if (shipChart) shipChart.destroy();
-      shipChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: chartLabels,
-          datasets: [
-            { 
-              label: 'ExFact Qty (Shipped)', 
-              data: groups.map(g => groupShipped[g]), 
-              backgroundColor: '#3b82f6' 
-            },
-            { 
-              label: 'Pending ExFact Qty (Balance)', 
-              data: groups.map(g => groupBalance[g]), 
-              backgroundColor: '#f97316' 
-            }
-          ]
+    const commonDataLabels = {
+        color: '#ffffff', font: { weight: 'bold', size: 11 }, clip: true,
+        display: function(ctx) {
+            var v = ctx.dataset.data[ctx.dataIndex];
+            var m = ctx.chart.scales.y.max;
+            return (v > 0 && m > 0 && (v / m) >= 0.04);
         },
-        options: { 
-          responsive: true, 
-          maintainAspectRatio: false, 
-          layout: {
-            padding: { top: 10 } 
-          },
-          scales: { 
-            x: { 
-              stacked: true, 
-              grid: { display: false },
-              ticks: {
-                color: '#f8fafc',
-                font: { weight: 'bold' }
-              }
-            }, 
-            y: { 
-              stacked: true, 
-              beginAtZero: true,
-              grid: { color: 'rgba(255, 255, 255, 0.1)' },
-              ticks: { color: '#cbd5e1' }
-            } 
-          },
-          plugins: {
-            legend: { 
-              position: 'top',
-              align: 'end',
-              labels: { color: '#ffffff' }
-            },
-            datalabels: {
-              color: '#ffffff',
-              font: { weight: 'bold', size: 11 },
-              clip: true,
-              formatter: function(value) {
-                return value.toLocaleString();
-              },
-              display: function(context) {
-                var value = context.dataset.data[context.dataIndex];
-                
-                // Get the absolute highest value of the Y axis to determine the global scale
-                var maxY = context.chart.scales.y.max;
-                
-                // Show label only if its segment represents at least ~4% of the ENTIRE chart height
-                // This guarantees the segment is physically tall enough in pixels to fit the text 
-                // regardless of how short the specific column is compared to the rest of the chart.
-                if (value > 0 && maxY > 0) {
-                  return (value / maxY) >= 0.04;
-                }
-                return false;
-              },
-              anchor: 'center',
-              align: 'center'
-            },
-            tooltip: {
-               mode: 'index',
-               intersect: false, 
-               backgroundColor: 'rgba(15, 23, 42, 0.95)',
-               titleColor: '#ffffff',
-               bodyColor: '#e2e8f0',
-               borderColor: 'rgba(255, 255, 255, 0.2)',
-               borderWidth: 1,
-               padding: 12,
-               displayColors: true,
-               callbacks: {
-                  label: function(context) {
-                     return context.dataset.label + ': ' + context.parsed.y.toLocaleString();
-                  },
-                  footer: function(tooltipItems) {
-                     let total = 0;
-                     tooltipItems.forEach(function(tooltipItem) {
-                        total += tooltipItem.parsed.y;
-                     });
-                     return 'Total Quantity: ' + total.toLocaleString();
-                  }
-               },
-               footerFont: { weight: 'bold', size: 13 },
-               footerMarginTop: 10,
-               footerColor: '#ffffff'
-            }
-          }
-        }
-      });
-    }
-  </script>
-</body>
-</html>
+        anchor: 'center', align: 'center'
+    };
+
+    // ==========================================
+    // MODULE 1: SHIPMENT

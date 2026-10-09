@@ -45,6 +45,14 @@
     }
     .chart-card h6 { color: #ffffff !important; }
     .chart-box { position: relative; height: 380px; width: 100%; }
+    
+    /* Chart Scrollbar Styling */
+    .chart-scroll-x { overflow-x: auto; overflow-y: hidden; }
+    .chart-scroll-x::-webkit-scrollbar { height: 8px; }
+    .chart-scroll-x::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+    .chart-scroll-x::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.25); border-radius: 4px; }
+    .chart-scroll-x::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+
     .date-input { background-color: #fff !important; cursor: pointer; }
 
     /* Ultra-Compact Table Styling */
@@ -208,7 +216,12 @@
             <label class="btn btn-outline-light" for="effToggleQty">Production Qty</label>
           </div>
         </div>
-        <div class="chart-box"><canvas id="effChartCanvas"></canvas></div>
+        <!-- SCROLLABLE GRAPH CONTAINER -->
+        <div class="chart-box chart-scroll-x" id="effChartBox">
+          <div id="effChartWrapper" style="height: 100%; min-width: 100%;">
+            <canvas id="effChartCanvas"></canvas>
+          </div>
+        </div>
       </div>
       <div class="table-card">
         <div class="table-responsive">
@@ -217,10 +230,12 @@
               <tr>
                 <th>Plant</th><th>Phy Plant</th><th>Line</th><th>Style</th><th>Prd Date</th>
                 <th class="text-end">Order Qty</th><th class="text-end">SMV</th>
-                <th class="text-end">Daily Plan</th><th class="text-end">Daily Prod</th>
-                <th class="text-end">Daily Plan Eff%</th><th class="text-end">Daily Act Eff%</th>
-                <th class="text-end bg-light">MTD Plan</th><th class="text-end bg-light">MTD Actual</th>
-                <th class="text-end bg-light">MTD Plan Eff%</th><th class="text-end bg-light">MTD Act Eff%</th>
+                <th class="text-end">R Days</th><th class="text-end">Opr Present</th>
+                <th class="text-end bg-light">Daily Plan</th><th class="text-end bg-light">Daily Prod</th><th class="text-end bg-light">Daily Diff</th>
+                <th class="text-end bg-light">Daily Act Prod Min</th><th class="text-end bg-light">Daily Plan Eff%</th><th class="text-end bg-light">Daily Act Eff%</th><th class="text-end bg-light">Daily SAM Opr</th>
+                <th class="text-end">MTD Plan</th><th class="text-end">MTD Prod</th><th class="text-end">MTD Diff</th>
+                <th class="text-end">MTD Planned Min</th><th class="text-end">MTD Act Prod Min</th><th class="text-end">MTD Plan Avl Min</th>
+                <th class="text-end text-primary">Slab Eff%</th><th class="text-end">MTD Plan Eff%</th><th class="text-end">MTD Act Eff%</th><th class="text-end">MTD SAM Opr</th>
               </tr>
             </thead>
             <tbody id="effTableBody"></tbody>
@@ -357,7 +372,7 @@
       try {
         const [shipRaw, effRaw, wipRaw] = await Promise.all([
           fetchSheetData('shipmentstatusdata.xlsx'),
-          fetchSheetData('line_efficiency_202609291531.csv'),
+          fetchSheetData('line_efficiency_202609291531_2.csv'),
           fetchSheetData('daily_wip_summary_202609291515.csv')
         ]);
 
@@ -378,7 +393,7 @@
           BalToFinish: parseFloat(r.BalToFinish) || 0, BalToPack: parseFloat(r.BalToPack) || 0
         }));
 
-        // Parse Efficiency mapping from new table structure rules
+        // Parse Efficiency mapping based on new table structure covering all 27+ fields
         effData = effRaw.map(r => {
           let pltCode = r.plant || r.plantcode || '-';
           let pDesc = r.plant_desc;
@@ -397,14 +412,25 @@
             PrdDate: parseDate(r.prd_date),
             OrderQty: parseFloat(r.order_qty || r.orderqty) || 0,
             SMV: parseFloat(r.smv) || 0,
+            RDays: parseInt(r.rdays) || 0,
+            OprPresent: parseInt(r.oprpresent) || 0,
             DailyPlanQty: parseFloat(r.dailyplanqty) || 0,
             DailyProdQty: parseFloat(r.dailyprodqty) || 0,
+            DailyDiffQty: parseFloat(r.dailydiffqty) || 0,
+            DailyActualProdMin: parseFloat(r.dailyactualprodmin) || 0,
             DailyPlanEff: parseFloat(r.dailyplaneffpct) || 0,
             DailyActualEff: parseFloat(r.dailyactualeffpct) || 0,
+            DailySAMOpr: parseFloat(r.dailysamopr) || 0,
             MTDPlanQty: parseFloat(r.mtdplanqty) || 0,
             MTDProdQty: parseFloat(r.mtdprodqty) || 0,
+            MTDDiffQty: parseFloat(r.mtddiffqty) || 0,
+            MTDPlannedMin: parseFloat(r.mtdplannedmin) || 0,
+            MTDActualProdMin: parseFloat(r.mtdactualprodmin) || 0,
+            MTDPlanAvlMin: parseFloat(r.mtdplanavlmin) || 0,
+            SlabEffPct: parseFloat(r.slabeffpct) || 0,
             MTDPlanEff: parseFloat(r.mtdplaneffpct) || 0,
-            MTDActualEff: parseFloat(r.mtdactualeffpct) || 0
+            MTDActualEff: parseFloat(r.mtdactualeffpct) || 0,
+            MTDSAMOpr: parseFloat(r.mtdsamopr) || 0
           };
         });
 
@@ -447,7 +473,6 @@
         display: function(ctx) {
             var v = ctx.dataset.data[ctx.dataIndex];
             var m = ctx.chart.scales.y.max;
-            // Display label only if segment represents >= 4% of the ENTIRE chart height
             return (v > 0 && m > 0 && (v / m) >= 0.04);
         },
         anchor: 'center', align: 'center'
@@ -663,6 +688,11 @@
 
       document.getElementById('effChartTitle').innerText = eff_metricMode === 'Efficiency' ? 'Line-wise Performance (Efficiency %)' : 'Line-wise Performance (MTD Qty)';
 
+      // Dynamically calculate chart width to enforce horizontal scroll if too many lines
+      const minW = Math.max(100, grps.length * 80); 
+      document.getElementById('effChartWrapper').style.width = `${minW}px`;
+      document.getElementById('effChartWrapper').style.minWidth = `100%`;
+
       const ctx = document.getElementById('effChartCanvas').getContext('2d');
       if (eff_chartInst) eff_chartInst.destroy();
       eff_chartInst = new Chart(ctx, {
@@ -692,10 +722,15 @@
           <td class="text-truncate" style="max-width: 150px;" title="${r.StyleLabel}">${r.StyleLabel}</td>
           <td>${r.PrdDate}</td>
           <td class="text-end">${r.OrderQty.toLocaleString()}</td><td class="text-end">${r.SMV.toFixed(2)}</td>
-          <td class="text-end">${r.DailyPlanQty.toLocaleString()}</td><td class="text-end fw-bold text-primary">${r.DailyProdQty.toLocaleString()}</td>
-          <td class="text-end">${r.DailyPlanEff.toFixed(2)}%</td><td class="text-end">${r.DailyActualEff.toFixed(2)}%</td>
-          <td class="text-end bg-light">${r.MTDPlanQty.toLocaleString()}</td><td class="text-end bg-light fw-bold text-success">${r.MTDProdQty.toLocaleString()}</td>
-          <td class="text-end bg-light">${r.MTDPlanEff.toFixed(2)}%</td><td class="text-end bg-light fw-bold text-info">${r.MTDActualEff.toFixed(2)}%</td>
+          <td class="text-end">${r.RDays}</td><td class="text-end">${r.OprPresent}</td>
+          
+          <td class="text-end bg-light">${r.DailyPlanQty.toLocaleString()}</td><td class="text-end bg-light fw-bold text-primary">${r.DailyProdQty.toLocaleString()}</td><td class="text-end bg-light">${r.DailyDiffQty.toLocaleString()}</td>
+          <td class="text-end bg-light">${r.DailyActualProdMin.toLocaleString()}</td><td class="text-end bg-light">${r.DailyPlanEff.toFixed(2)}%</td><td class="text-end bg-light">${r.DailyActualEff.toFixed(2)}%</td><td class="text-end bg-light">${r.DailySAMOpr.toFixed(2)}</td>
+          
+          <td class="text-end">${r.MTDPlanQty.toLocaleString()}</td><td class="text-end fw-bold text-success">${r.MTDProdQty.toLocaleString()}</td><td class="text-end">${r.MTDDiffQty.toLocaleString()}</td>
+          <td class="text-end">${r.MTDPlannedMin.toLocaleString()}</td><td class="text-end">${r.MTDActualProdMin.toLocaleString()}</td><td class="text-end">${r.MTDPlanAvlMin.toLocaleString()}</td>
+          
+          <td class="text-end text-primary fw-bold">${r.SlabEffPct.toFixed(2)}%</td><td class="text-end">${r.MTDPlanEff.toFixed(2)}%</td><td class="text-end fw-bold text-info">${r.MTDActualEff.toFixed(2)}%</td><td class="text-end">${r.MTDSAMOpr.toFixed(2)}</td>
         </tr>`).join('');
       document.getElementById('effPageInfo').innerText = `Showing ${d.length ? start+1 : 0} to ${start+d.length} of ${eff_filtered.length} entries`;
       document.getElementById('effBtnPrev').disabled = eff_page === 1;

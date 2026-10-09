@@ -104,7 +104,6 @@
          TAB 1: SHIPMENT STATUS
     =========================================== -->
     <div id="pane-shipment" class="tab-pane d-block">
-      <!-- Filters -->
       <div class="filter-card">
         <div class="row g-2 align-items-end">
           <div class="col-lg-2 col-md-4">
@@ -132,7 +131,6 @@
           </div>
         </div>
       </div>
-      <!-- Chart -->
       <div class="chart-card">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h6 class="fw-bold mb-0" id="shipChartTitle">Customer-wise Shipped vs Remaining Balance</h6>
@@ -145,7 +143,6 @@
         </div>
         <div class="chart-box"><canvas id="shipChartCanvas"></canvas></div>
       </div>
-      <!-- Table -->
       <div class="table-card">
         <div class="table-responsive">
           <table class="table table-hover table-bordered mb-0">
@@ -370,10 +367,11 @@
 
     async function loadAllDatasets() {
       try {
+        // EXACT filenames mapped from your recent instructions
         const [shipRaw, effRaw, wipRaw] = await Promise.all([
           fetchSheetData('shipmentstatusdata.xlsx'),
-          fetchSheetData('line_efficiency_202609291531_2.csv'),
-          fetchSheetData('daily_wip_summary_202609291515.csv')
+          fetchSheetData('line_efficiency_202609291531_3.csv'),
+          fetchSheetData('daily_wip_summary_202609291515_2.csv')
         ]);
 
         // Parse Shipment
@@ -393,7 +391,7 @@
           BalToFinish: parseFloat(r.BalToFinish) || 0, BalToPack: parseFloat(r.BalToPack) || 0
         }));
 
-        // Parse Efficiency mapping based on new table structure covering all 27+ fields
+        // Parse Efficiency mapping based on the exact table structure fields
         effData = effRaw.map(r => {
           let pltCode = r.plant || r.plantcode || '-';
           let pDesc = r.plant_desc;
@@ -437,11 +435,11 @@
         // Parse WIP
         wipData = wipRaw.map(r => ({
           Unit: r.unit || '-', Department: r.department || '-',
-          PlanDaily: parseFloat(r.planDaily) || 0, ActualDaily: parseFloat(r.actualdaily) || 0,
-          AltrejDaily: parseFloat(r.altrejdaily) || 0, PlanMTD: parseFloat(r.planMTD) || 0,
+          PlanDaily: parseFloat(r.planDaily || r.plandaily) || 0, ActualDaily: parseFloat(r.actualdaily || r.actualDaily) || 0,
+          AltrejDaily: parseFloat(r.altrejdaily || r.altRejDaily) || 0, PlanMTD: parseFloat(r.planMTD) || 0,
           ActualMTD: parseFloat(r.actualMTD) || 0, AltrejMTD: parseFloat(r.altrejMTD) || 0,
-          FinalRej: parseFloat(r.finalrej) || 0, MonthOpnBal: parseFloat(r.MonthOpnBal) || 0,
-          MTDBal: parseFloat(r.MTDBal) || 0, MonthClsBal: parseFloat(r.MonthClsBal) || 0
+          FinalRej: parseFloat(r.finalrej || r.finalRej) || 0, MonthOpnBal: parseFloat(r.MonthOpnBal || r.monthopnbal) || 0,
+          MTDBal: parseFloat(r.MTDBal || r.mtdbal) || 0, MonthClsBal: parseFloat(r.MonthClsBal || r.monthclsbal) || 0
         }));
 
         // Init Dropdowns
@@ -455,8 +453,9 @@
       } catch (err) {
         console.error(err);
         const badge = document.getElementById('dataStatusBadge');
-        badge.className = 'badge bg-danger text-white px-3 py-2 fs-6 rounded-pill';
-        badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Error Loading Data`;
+        badge.className = 'badge bg-danger text-white px-3 py-2 fs-6 rounded-pill shadow-sm';
+        // Explicitly show the exact error message (e.g. FileNotFoundError) inside the badge
+        badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> ${err.message}`;
       }
     }
 
@@ -607,7 +606,7 @@
     function ship_changePage(delta) { ship_page += delta; ship_drawTable(); }
 
     // ==========================================
-    // MODULE 2: EFFICIENCY (UPDATED)
+    // MODULE 2: EFFICIENCY
     // ==========================================
     function eff_updateFilters(changed) {
       let r = effData;
